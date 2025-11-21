@@ -8,16 +8,12 @@ Instruction for implementor: keep analysis, design and implementation as simple 
 
 ## Sprint 1 - Review of current codebase
 
+Status: Done
+
+## Sprint 2 - Migration to Ansible Collection
+
 Status: Progress
-
-
-## Sprint 2 - Prerequisites
-
-Status: Planned
-
-Document perquisites. Prepare guided documentation with commands leading to prerequisite execution. Operator will copy/paste required command lines. Keep it as simple as possible to achieve MVP level. Focus on MacOS environment.
 
 Backlog Items:
 
-* RSB-1. Prepare tools and techniques
-
+* GHC-3. GitHub Collection
