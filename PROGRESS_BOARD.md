@@ -5,8 +5,8 @@ Real-time tracking of Sprint execution separate from PLAN.md planning document.
 ## Active Sprint
 
 **Sprint 3**: Role interface specification
-**Status**: under_design
-**Phase**: Elaboration (Phase 3/5)
+**Status**: designed
+**Phase**: Elaboration (Phase 3/5) - Complete
 **Started**: 2025-11-21
 **Mode**: Managed
 
@@ -14,13 +14,14 @@ Real-time tracking of Sprint execution separate from PLAN.md planning document.
 
 ### GHC-4: GitHub Collection roles support input / output specification
 
-**Status**: under_design
+**Status**: designed
 **Assigned Sprint**: Sprint 3
-**Design Progress**:
+**Design Complete**:
 - ✅ Analysis complete (9 roles with validation, 7 without)
-- ⏳ Creating detailed argument_specs.yml design
-- ⏳ Designing validation strategy
-- ⏳ Mapping INPUT/OUTPUT parameters for all 16 roles
+- ✅ Detailed argument_specs.yml design for all 16 roles
+- ✅ Dual validation strategy (meta + inline)
+- ✅ Complete INPUT/OUTPUT parameter mapping
+- ⏳ Awaiting design approval for construction
 
 **Links**:
 - Backlog: [BACKLOG.md](BACKLOG.md#ghc-4-github-collection-roles-support-input--output-specification)
@@ -28,13 +29,14 @@ Real-time tracking of Sprint execution separate from PLAN.md planning document.
 
 ### GHC-5: GitHub Collection documentation
 
-**Status**: under_design
+**Status**: designed
 **Assigned Sprint**: Sprint 3
-**Design Progress**:
+**Design Complete**:
 - ✅ Analysis complete (depends on GHC-4)
-- ⏳ Designing documentation structure
-- ⏳ Creating role descriptions and examples
-- ⏳ Defining ansible-doc verification process
+- ✅ Documentation structure designed
+- ✅ Role descriptions finalized (all 16 roles)
+- ✅ ansible-doc verification process defined
+- ⏳ Awaiting design approval for construction
 
 **Links**:
 - Backlog: [BACKLOG.md](BACKLOG.md#ghc-5-github-collection-documentation)
@@ -52,10 +54,10 @@ Real-time tracking of Sprint execution separate from PLAN.md planning document.
 - **Deliverable**: [sprint_3_analysis.md](progress/sprint_3/sprint_3_analysis.md), [sprint_3_inception.md](progress/sprint_3/sprint_3_inception.md)
 - **Completed**: 2025-11-21
 
-### Phase 3: Elaboration ⏳
-- **Status**: In Progress
-- **Deliverable**: sprint_3_design.md (in progress), sprint_3_elaboration.md (pending)
-- **Started**: 2025-11-21
+### Phase 3: Elaboration ✅
+- **Status**: Complete - Awaiting Approval
+- **Deliverable**: [sprint_3_design.md](progress/sprint_3/sprint_3_design.md), [sprint_3_elaboration.md](progress/sprint_3/sprint_3_elaboration.md)
+- **Completed**: 2025-11-21
 
 ### Phase 4: Construction ⬜
 - **Status**: Not Started
