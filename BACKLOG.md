@@ -80,3 +80,7 @@ Generate HTML documentation site for the entire collection using `antsibull-docs
 ### GHC-7. Roles uses argument specification at meta
 
 Make sure that all roles use argument specification at meta directory. Do not keep argument specification for rules inline. Use `ansible.builtin.validate_argument_spec` module with spec taken from meta directory.
+
+### GHC-8. GitHub Pages deploy workflow preparation
+
+Prepare and configure GitHub Pages deployment workflow for the collection documentation. The workflow should automatically build HTML documentation using `generate_html_docs.sh` and deploy it to GitHub Pages whenever changes are pushed to the main branch. Configure repository settings to enable GitHub Pages with GitHub Actions as the source. Update `galaxy.yml` documentation URL to point to the published GitHub Pages site. The workflow file is located at `.github/workflows/docs.yml` and should trigger on pushes to `master`/`main` branch when files in `github_collection/` directory change. Follow GitHub's official documentation for Pages deployment: <https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site>
