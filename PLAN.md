@@ -8,7 +8,7 @@ Instruction for implementor: keep analysis, design and implementation as simple 
 
 ## Sprint 1 - Review of current codebase
 
-Status: Planned
+Status: Progress
 
 
 ## Sprint 2 - Prerequisites
