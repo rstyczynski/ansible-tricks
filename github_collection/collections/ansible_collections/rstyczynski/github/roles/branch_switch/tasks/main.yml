@@ -12,15 +12,7 @@
 ---
 - name: "Switch Branch: Validate arguments"
   ansible.builtin.validate_argument_spec:
-    argument_spec:
-      branch_switch_dest_path:
-        type: str
-        required: true
-        description: Destination path to the git repository
-      branch_switch_switch_to_branch:
-        type: str
-        required: true
-        description: Branch name to switch to
+    argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
 - name: "Switch Branch: Get current branch name"  # noqa: command-instead-of-module
   ansible.builtin.command:

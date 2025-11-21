@@ -16,23 +16,7 @@
 ---
 - name: "Clone: Validate arguments"
   ansible.builtin.validate_argument_spec:
-    argument_spec:
-      repo_clone_repo_url:
-        type: str
-        required: true
-        description: Repository URL to clone
-      repo_clone_dest_path:
-        type: str
-        required: true
-        description: Destination path for the repository
-      repo_clone_base_branch:
-        type: str
-        required: true
-        description: Base branch name
-      repo_clone_new_branch:
-        type: str
-        required: true
-        description: New branch name
+    argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
 - name: "Clone: Check if repository exists"
   ansible.builtin.stat:

@@ -16,19 +16,7 @@
 ---
 - name: "Add: Validate arguments"
   ansible.builtin.validate_argument_spec:
-    argument_spec:
-      repo_file_add_dest_path:
-        type: str
-        required: true
-        description: Destination path to the git repository
-      repo_file_add_file_source:
-        type: str
-        required: false
-        description: Source file path to copy (optional)
-      repo_file_add_file_path:
-        type: str
-        required: false
-        description: File path in repository
+    argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
 - name: "Add: Set file_path from file_source if not provided"
   ansible.builtin.set_fact:

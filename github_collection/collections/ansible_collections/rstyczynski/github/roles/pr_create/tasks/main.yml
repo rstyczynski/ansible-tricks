@@ -20,31 +20,7 @@
 ---
 - name: "PR Create: Validate arguments"
   ansible.builtin.validate_argument_spec:
-    argument_spec:
-      pr_create_gh_version:
-        type: dict
-        required: true
-        description: GitHub CLI version check result
-      pr_create_gh_auth_status:
-        type: dict
-        required: true
-        description: GitHub CLI authentication status
-      pr_create_dest_path:
-        type: str
-        required: true
-        description: Destination path to the git repository
-      pr_create_base_branch:
-        type: str
-        required: true
-        description: Base branch for PR
-      pr_create_pr_title:
-        type: str
-        required: false
-        description: PR title (optional)
-      pr_create_pr_body:
-        type: str
-        required: false
-        description: PR body/description (optional)
+    argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
 - name: "PR Create: Fail if gh CLI is not installed"
 

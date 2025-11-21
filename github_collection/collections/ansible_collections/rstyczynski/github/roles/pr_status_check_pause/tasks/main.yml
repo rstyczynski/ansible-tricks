@@ -12,23 +12,7 @@
 ---
 - name: "PR Check: Validate arguments"
   ansible.builtin.validate_argument_spec:
-    argument_spec:
-      pr_status_check_pause_pr_status_check_delay:
-        type: int
-        required: true
-        description: Seconds to wait between retry attempts
-      pr_status_check_pause_pr_status_check_retries:
-        type: int
-        required: true
-        description: Number of retry attempts
-      pr_status_check_pause_has_pending_checks:
-        type: bool
-        required: false
-        description: Whether there are pending checks
-      pr_status_check_pause_attempt_number:
-        type: int
-        required: false
-        description: Current attempt number
+    argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
 - name: "PR Check: Check PR status"
   ansible.builtin.include_role:

@@ -15,15 +15,7 @@
 ---
 - name: "Auth: Validate arguments"
   ansible.builtin.validate_argument_spec:
-    argument_spec:
-      github_auth_gh_version:
-        type: dict
-        required: true
-        description: GitHub CLI version check result
-      github_auth_gh_auth_status:
-        type: dict
-        required: true
-        description: GitHub CLI authentication status
+    argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
 - name: "Auth: Check for GitHub token in environment"
   ansible.builtin.set_fact:
