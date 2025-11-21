@@ -65,8 +65,10 @@ Transform all existing task-sets from `github-task-sets` directory into Ansible 
 
 Having it update trigger file `1.trigger` and process `flow.yml` that should execute. In case of execution failure due to status check timeout, execute again to register success. Propose more tests to be executed.
 
-### GHC-4. GitHub Collection roles support input / output specification
+### GHC-4. GitHub Collection roles support input / output specification### 
 
 Role validates arguments and document produced attributes following `input_output_rule_spec.md` specification available in Ansible specific rules. The rules are available in RUBStrikesBack or in this project's `rules/specific/ansible` directory.
+
+### GHC-5. GitHub Collection documentation
 
 Produce `ansible-doc` documentation for all the roles concluding this task. In case of missing description for a role - add it. You can do it as we are working with generic GitHub procedures. Use up to five sentences to describe each role. The same for arguments and output attributes.

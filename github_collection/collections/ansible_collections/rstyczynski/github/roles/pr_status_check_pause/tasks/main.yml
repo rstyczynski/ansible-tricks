@@ -31,8 +31,8 @@
         description: Current attempt number
 
 - name: "PR Check: Check PR status"
-
-  ansible.builtin.include_tasks: pr_status_check.yml
+  ansible.builtin.include_role:
+    name: rstyczynski.github.pr_status_check
 
 - name: "PR Check: Wait before next attempt"
 

@@ -1,1 +1,0 @@
-../../sprint_3/sprint_3_inception.md

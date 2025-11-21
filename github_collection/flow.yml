@@ -34,21 +34,21 @@
     repo_url: "https://github.com/rstyczynski/github_lab.git"
     dest_path: "./github_lab"
     base_branch: "main"
-    new_branch: "my-new-feature"
+    new_branch: "test-collection-e2e-final"
     push_new_branch: true
     file_source: "./1.trigger"
-    file_path: ""
-    commit_message: ""
-    pr_title: ""
-    pr_body: ""
-    pr_comment: "PLAN"
+    file_path: "1.trigger"
+    commit_message: "test: verify ansible collection workflow"
+    pr_title: "Test Collection Workflow"
+    pr_body: "Automated test to verify rstyczynski.github collection end-to-end workflow"
+    pr_comment: "LGTM - Collection workflow validated"
     pr_status_check_retries: 6
     pr_status_check_delay: 5
     pr_merge: true
     pr_merge_method: "merge"
     pr_pull_latest: true
     branch_delete: true
-    delete_branch: ""
+    delete_branch: "test-collection-e2e-final"
 
   tasks:
     - name: Execute GitHub workflow
