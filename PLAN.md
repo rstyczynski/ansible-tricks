@@ -20,9 +20,17 @@ Backlog Items:
 
 ## Sprint 3 - Role interface specification
 
-Status: Progress
+Status: Done
 
 Backlog Items:
 
 * GHC-4. GitHub Collection roles support input / output specification
 * GHC-5. GitHub Collection documentation
+
+## Sprint 4 - Comprehensive GitHub Collection documentation
+
+Status: Progress
+
+Backlog Items:
+
+* GHC-6. GitHub Collection HTML documentation generation
