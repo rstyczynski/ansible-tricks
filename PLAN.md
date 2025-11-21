@@ -12,7 +12,7 @@ Status: Done
 
 ## Sprint 2 - Migration to Ansible Collection
 
-Status: Progress
+Status: Done
 
 Backlog Items:
 
