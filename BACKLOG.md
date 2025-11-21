@@ -76,3 +76,7 @@ Produce `ansible-doc` documentation for all the roles concluding this task. In c
 ### GHC-6. GitHub Collection HTML documentation generation
 
 Generate HTML documentation site for the entire collection using `antsibull-docs` tool. The documentation should include all 16 roles with their argument specifications, descriptions, and parameter details in a browsable Sphinx-based format. Provide a script (`generate_html_docs.sh`) that automates the process of initializing the Sphinx site, installing dependencies, and building the HTML documentation. The build artifacts (Sphinx source, build scripts) should remain in the construction directory (`docs_html/`), and only the final HTML output should be copied to the collection's `docs/html/` directory (Ansible standard) at `collections/ansible_collections/rstyczynski/github/docs/html/index.html`. The documentation can be served locally or published to a web server. Follow the official Ansible documentation guide: <https://docs.ansible.com/projects/ansible/latest/dev_guide/developing_collections_documenting.html>
+
+### GHC-7. Roles uses argument specification at meta
+
+Make sure that all roles use argument specification at meta directory. Do not keep argument specification for rules inline. Use `ansible.builtin.validate_argument_spec` module with spec taken from meta directory.

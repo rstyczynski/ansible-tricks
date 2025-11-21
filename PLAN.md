@@ -29,8 +29,16 @@ Backlog Items:
 
 ## Sprint 4 - Comprehensive GitHub Collection documentation
 
-Status: Progress
+Status: Done
 
 Backlog Items:
 
 * GHC-6. GitHub Collection HTML documentation generation
+
+## Sprint 5 - Role argument specification fix
+
+Status: Progress
+
+Backlog Items:
+
+* GHC-7. Roles uses argument specification at meta
