@@ -4,6 +4,6 @@ Progress board is a table showing sprint, and backlog items state. It's the only
 
 | Sprint | Sprint Status | Backlog Item | Item Status |
 |--------|---------------|--------------|-------------|
-| Sprint 1 | Progress | GHC-1 | Planned |
+| Sprint 1 | analysed | GHC-1 | analysed |
 
 
