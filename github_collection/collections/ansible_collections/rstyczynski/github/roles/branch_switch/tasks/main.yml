@@ -1,0 +1,50 @@
+# INPUT VARIABLES TABLE
+# | name                        | type   | description                                 |
+# |-----------------------------|--------|---------------------------------------------|
+# | branch_switch_dest_path     | string | Destination path to the git repository      |
+# | branch_switch_switch_to_branch| string | Branch name to switch to                  |
+#
+# OUTPUT VARIABLES TABLE
+# | name                              | type   | description                                    |
+# |-----------------------------------|--------|------------------------------------------------|
+# | branch_switch_current_branch_before_switch| dict | Current branch before switching |
+# | branch_switch_checkout_result     | dict   | Result of checking out target branch          |
+---
+- name: "Switch Branch: Validate arguments"
+  ansible.builtin.validate_argument_spec:
+    argument_spec:
+      branch_switch_dest_path:
+        type: str
+        required: true
+        description: Destination path to the git repository
+      branch_switch_switch_to_branch:
+        type: str
+        required: true
+        description: Branch name to switch to
+
+- name: "Switch Branch: Get current branch name"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ branch_switch_dest_path }}"
+  register: branch_switch_current_branch_before_switch
+  changed_when: false
+
+- name: "Switch Branch: Skip if already on target branch"
+  ansible.builtin.meta: end_host
+  when: branch_switch_current_branch_before_switch.stdout == branch_switch_switch_to_branch
+
+- name: "Switch Branch: Display switch intention"
+  ansible.builtin.debug:
+    msg: "Switching from {{ branch_switch_current_branch_before_switch.stdout }} to {{ branch_switch_switch_to_branch }}"
+
+- name: "Switch Branch: Switch to target branch"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git checkout "{{ branch_switch_switch_to_branch }}"
+    chdir: "{{ branch_switch_dest_path }}"
+  register: branch_switch_checkout_result
+  changed_when: branch_switch_checkout_result.rc == 0
+
+- name: "Switch Branch: Display success"
+  ansible.builtin.debug:
+    msg: "Successfully switched to {{ branch_switch_switch_to_branch }}"
+  when: branch_switch_checkout_result is changed

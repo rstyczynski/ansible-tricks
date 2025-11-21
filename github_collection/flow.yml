@@ -1,0 +1,214 @@
+# INPUT VARIABLES TABLE
+# | name                      | type   | description                                 |
+# |---------------------------|--------|---------------------------------------------|
+# | repo_url                  | string | Repository URL                               |
+# | dest_path                 | string | Destination path                             |
+# | base_branch               | string | Base branch name                             |
+# | new_branch                | string | New branch name                              |
+# | push_new_branch           | bool   | Whether to push new branch                   |
+# | file_source               | string | Source file to copy                          |
+# | file_path                 | string | File path in repository                      |
+# | commit_message            | string | Commit message                               |
+# | pr_title                  | string | PR title                                    |
+# | pr_body                   | string | PR body                                     |
+# | pr_comment                | string | PR comment                                  |
+# | pr_status_check_retries   | int    | Number of retry attempts                    |
+# | pr_status_check_delay     | int    | Seconds to wait between retries             |
+# | pr_merge                  | bool   | Whether to merge PR                         |
+# | pr_merge_method           | string | Merge method                                |
+# | pr_pull_latest            | bool   | Whether to pull latest changes               |
+# | branch_delete             | bool   | Whether to delete branch                     |
+# | delete_branch             | string | Branch to delete                            |
+#
+# OUTPUT VARIABLES TABLE
+# | name  | type | description                                    |
+# |-------|------|------------------------------------------------|
+---
+# Set common variables for the workflow
+- name: Set variables for workflow
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    repo_url: "https://github.com/rstyczynski/github_lab.git"
+    dest_path: "./github_lab"
+    base_branch: "main"
+    new_branch: "my-new-feature"
+    push_new_branch: true
+    file_source: "./1.trigger"
+    file_path: ""
+    commit_message: ""
+    pr_title: ""
+    pr_body: ""
+    pr_comment: "PLAN"
+    pr_status_check_retries: 6
+    pr_status_check_delay: 5
+    pr_merge: true
+    pr_merge_method: "merge"
+    pr_pull_latest: true
+    branch_delete: true
+    delete_branch: ""
+
+  tasks:
+    - name: Execute GitHub workflow
+      block:
+        - name: Precheck
+          ansible.builtin.include_role:
+            name: rstyczynski.github.github_precheck
+
+        - name: Authenticate GitHub CLI
+          ansible.builtin.include_role:
+            name: rstyczynski.github.github_auth
+          vars:
+            github_auth_gh_version: "{{ github_precheck_gh_version }}"
+            github_auth_gh_auth_status: "{{ github_precheck_gh_auth_status }}"
+
+        - name: Clone Repository
+          ansible.builtin.include_role:
+            name: rstyczynski.github.repo_clone
+          vars:
+            repo_clone_repo_url: "{{ repo_url }}"
+            repo_clone_dest_path: "{{ dest_path }}"
+            repo_clone_base_branch: "{{ base_branch }}"
+            repo_clone_new_branch: "{{ new_branch }}"
+
+        - name: Create and Switch to Branch
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_checkout
+          vars:
+            branch_checkout_new_branch: "{{ new_branch }}"
+            branch_checkout_dest_path: "{{ dest_path }}"
+            branch_checkout_base_branch: "{{ base_branch }}"
+            branch_checkout_push_new_branch: "{{ push_new_branch }}"
+
+        - name: Add File to Repository
+          ansible.builtin.include_role:
+            name: rstyczynski.github.repo_file_add
+          vars:
+            repo_file_add_file_source: "{{ file_source }}"
+            repo_file_add_file_path: "{{ file_path }}"
+            repo_file_add_dest_path: "{{ dest_path }}"
+
+        - name: Commit Changes
+          ansible.builtin.include_role:
+            name: rstyczynski.github.repo_commit
+          vars:
+            repo_commit_dest_path: "{{ dest_path }}"
+            repo_commit_commit_message: "{{ commit_message }}"
+            repo_commit_file_path: "{{ file_path }}"
+
+        - name: Push Changes
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_push
+          vars:
+            branch_push_dest_path: "{{ dest_path }}"
+
+        - name: Create Pull Request
+          ansible.builtin.include_role:
+            name: rstyczynski.github.pr_create
+          vars:
+            pr_create_gh_version: "{{ github_precheck_gh_version }}"
+            pr_create_gh_auth_status: "{{ github_precheck_gh_auth_status }}"
+            pr_create_dest_path: "{{ dest_path }}"
+            pr_create_base_branch: "{{ base_branch }}"
+            pr_create_pr_title: "{{ pr_title }}"
+            pr_create_pr_body: "{{ pr_body }}"
+
+        - name: Set variables for PR status check
+          ansible.builtin.set_fact:
+            pr_status_check_gh_version: "{{ github_precheck_gh_version }}"
+            pr_status_check_gh_auth_status: "{{ github_precheck_gh_auth_status }}"
+            pr_status_check_dest_path: "{{ dest_path }}"
+
+        - name: Check PR status with retry
+          ansible.builtin.include_role:
+            name: rstyczynski.github.pr_status_check_pause
+          loop: "{{ range(1, pr_status_check_retries + 1) | list }}"
+          loop_control:
+            loop_var: attempt_number
+          vars:
+            pr_status_check_pause_pr_status_check_delay: "{{ pr_status_check_delay }}"
+            pr_status_check_pause_pr_status_check_retries: "{{ pr_status_check_retries }}"
+            pr_status_check_pause_has_pending_checks: "{{ pr_status_check_has_pending_checks | default(false) }}"
+            pr_status_check_pause_attempt_number: "{{ attempt_number }}"
+          when: pr_status_check_has_pending_checks is not defined or pr_status_check_has_pending_checks | bool
+
+        - name: Fail if checks still pending after all attempts
+          ansible.builtin.fail:
+            msg: >-
+              PR status checks did not complete within
+              {{ pr_status_check_retries * pr_status_check_delay }} seconds
+              ({{ pr_status_check_retries }} attempts)
+          when: pr_status_check_has_pending_checks is defined and pr_status_check_has_pending_checks | bool
+
+        - name: "Add comment to PR"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.pr_comment
+          vars:
+            pr_comment_pr_comment: "{{ pr_comment }}"
+            pr_comment_dest_path: "{{ dest_path }}"
+
+        - name: "Merge PR"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.pr_merge
+          vars:
+            pr_merge_dest_path: "{{ dest_path }}"
+            pr_merge_pr_merge_method: "{{ pr_merge_method }}"
+          when: pr_merge is defined and pr_merge | bool
+
+        - name: "Set branch to switch to"
+          ansible.builtin.set_fact:
+            switch_to_branch: "{{ base_branch }}"
+          when: pr_merge is defined and pr_merge | bool
+
+        - name: "Switch to base branch"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_switch
+          vars:
+            branch_switch_dest_path: "{{ dest_path }}"
+            branch_switch_switch_to_branch: "{{ switch_to_branch }}"
+          when: pr_merge is defined and pr_merge | bool
+
+        - name: "Pull latest changes from base branch"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_pull
+          vars:
+            branch_pull_dest_path: "{{ dest_path }}"
+          when: pr_pull_latest is defined and pr_pull_latest | bool
+
+        - name: "Delete branch"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_delete
+          vars:
+            branch_delete_dest_path: "{{ dest_path }}"
+            branch_delete_delete_branch: "{{ delete_branch }}"
+            branch_delete_new_branch: "{{ new_branch }}"
+            branch_delete_base_branch: "{{ base_branch }}"
+          when: branch_delete is defined and branch_delete | bool
+
+        - name: "Display success message"
+          ansible.builtin.debug:
+            msg: "Workflow completed successfully"
+
+      rescue:
+        - name: "Display error message"
+          ansible.builtin.debug:
+            msg: "Workflow failed, cleaning up..."
+
+        - name: Set failure flag
+          ansible.builtin.set_fact:
+            workflow_failed: true
+
+      always:
+        - name: Logout from GitHub CLI
+          ansible.builtin.include_role:
+            name: rstyczynski.github.github_logout
+          vars:
+            github_logout_gh_version: "{{ github_precheck_gh_version }}"
+            github_logout_gh_auth_result: "{{ github_auth_gh_auth_result }}"
+
+        - name: Fail if workflow had errors
+          ansible.builtin.fail:
+            msg: "Workflow failed - check errors above"
+          when: workflow_failed is defined and workflow_failed | bool

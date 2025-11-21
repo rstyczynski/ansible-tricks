@@ -1,0 +1,86 @@
+# INPUT VARIABLES TABLE
+# | name                    | type   | description                                 |
+# |-------------------------|--------|---------------------------------------------|
+# | pr_comment_pr_comment   | string | Comment text to add to PR                   |
+# | pr_comment_dest_path    | string | Destination path to the git repository      |
+#
+# OUTPUT VARIABLES TABLE
+# | name                          | type   | description                                    |
+# |-------------------------------|--------|------------------------------------------------|
+# | pr_comment_current_branch     | dict   | Current branch name                            |
+# | pr_comment_pr_number          | dict   | PR number for current branch                    |
+# | pr_comment_last_pr_comment    | dict   | Last comment on PR                              |
+# | pr_comment_pr_comment_result  | dict   | Result of adding comment to PR                 |
+---
+- name: "PR Comment: Validate arguments"
+  ansible.builtin.validate_argument_spec:
+    argument_spec:
+      pr_comment_dest_path:
+        type: str
+        required: true
+        description: Destination path to the git repository
+      pr_comment_pr_comment:
+        type: str
+        required: false
+        description: Comment text to add to PR
+
+- name: "PR Comment: Skip if no comment text provided"
+
+  ansible.builtin.meta: end_host
+  when: pr_comment_pr_comment is not defined or pr_comment_pr_comment == ""
+
+- name: "PR Comment: Get current branch name"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ pr_comment_dest_path }}"
+  register: pr_comment_current_branch
+  changed_when: false
+
+- name: "PR Comment: Get PR number for current branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr list --head {{ pr_comment_current_branch.stdout }} --json number --jq '.[0].number'
+    chdir: "{{ pr_comment_dest_path }}"
+  register: pr_comment_pr_number
+  changed_when: false
+  failed_when: false
+
+- name: "PR Comment: Fail if no PR exists for current branch"
+
+  ansible.builtin.fail:
+    msg: "No pull request found for branch {{ pr_comment_current_branch.stdout }}"
+  when: pr_comment_pr_number.stdout == ""
+
+- name: "PR Comment: Get last comment on PR"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: >
+      gh pr view {{ pr_comment_pr_number.stdout }}
+      --json comments
+      --jq '.comments[-1].body'
+    chdir: "{{ pr_comment_dest_path }}"
+  register: pr_comment_last_pr_comment
+  changed_when: false
+  failed_when: false
+
+- name: "PR Comment: Add comment if different from last comment"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr comment {{ pr_comment_pr_number.stdout }} --body "{{ pr_comment_pr_comment }}"
+    chdir: "{{ pr_comment_dest_path }}"
+  when: pr_comment_last_pr_comment.stdout != pr_comment_pr_comment
+  register: pr_comment_pr_comment_result
+  changed_when: pr_comment_pr_comment_result.rc == 0
+
+- name: "PR Comment: Display comment status"  # noqa: command-instead-of-module
+
+  ansible.builtin.debug:
+    msg: "Comment added to PR #{{ pr_comment_pr_number.stdout }}"
+  when: pr_comment_pr_comment_result is changed
+
+- name: "PR Comment: Display skip message"
+
+  ansible.builtin.debug:
+    msg: "Comment already exists as last comment on PR #{{ pr_comment_pr_number.stdout }}"
+  when: pr_comment_pr_comment_result is not changed and pr_comment_pr_comment_result is not skipped

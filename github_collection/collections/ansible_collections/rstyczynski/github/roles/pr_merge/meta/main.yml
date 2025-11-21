@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: rstyczynski
+  description: Merge GitHub pull requests with status check validation
+  company: Personal
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: MacOSX
+      versions:
+        - all
+  galaxy_tags:
+    - github
+    - git
+    - pr
+    - pullrequest
+    - merge
+dependencies: []

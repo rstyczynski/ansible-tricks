@@ -1,0 +1,52 @@
+# INPUT VARIABLES TABLE
+# | name  | type | description                                 |
+# |-------|------|---------------------------------------------|
+#
+# OUTPUT VARIABLES TABLE
+# | name                          | type   | description                                    |
+# |-------------------------------|--------|------------------------------------------------|
+# | github_precheck_git_version   | dict   | Git version information                        |
+# | github_precheck_gh_version    | dict   | GitHub CLI version information                 |
+# | github_precheck_gh_auth_status| dict   | GitHub CLI authentication status                |
+---
+- name: "Precheck: Ensure git is available"  # noqa: command-instead-of-module
+  ansible.builtin.command: git --version
+  register: github_precheck_git_version
+  changed_when: false
+
+- name: "Precheck: Display git version"
+  ansible.builtin.debug:
+    msg: "Using {{ github_precheck_git_version.stdout }}"
+
+- name: "Precheck: Check if gh CLI is available"  # noqa: command-instead-of-module
+  ansible.builtin.command: gh --version
+  register: github_precheck_gh_version
+  changed_when: false
+  failed_when: false
+
+- name: "Precheck: Display gh CLI version"
+  ansible.builtin.debug:
+    msg: "Using {{ github_precheck_gh_version.stdout }}"
+  when: github_precheck_gh_version.rc == 0
+
+- name: "Precheck: Check if gh CLI is authenticated"  # noqa: command-instead-of-module
+  ansible.builtin.command: gh auth status
+  register: github_precheck_gh_auth_status
+  changed_when: false
+  failed_when: false
+  when: github_precheck_gh_version.rc == 0
+
+- name: "Precheck: Display gh CLI auth status"
+  ansible.builtin.debug:
+    msg: "GitHub CLI is authenticated"
+  when: github_precheck_gh_version.rc == 0 and github_precheck_gh_auth_status.rc == 0
+
+- name: "Precheck: Warning if gh CLI is not installed"
+  ansible.builtin.debug:
+    msg: "WARNING: GitHub CLI (gh) is not installed. PR creation will fail. Install: https://cli.github.com/"
+  when: github_precheck_gh_version.rc != 0
+
+- name: "Precheck: Warning if gh CLI is not authenticated"
+  ansible.builtin.debug:
+    msg: "WARNING: GitHub CLI is not authenticated. PR creation will fail. Run: gh auth login"
+  when: github_precheck_gh_version.rc == 0 and github_precheck_gh_auth_status.rc != 0

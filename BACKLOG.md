@@ -50,12 +50,23 @@ Notes:
 
 ### GHC-2. Prepare tools and techniques
 
-Project is coded using Ansible on OSX. It is mandatory to document system configuration to prepare for development. It should be validated that user has all tools and required access to github repository. Use git, gh, and .netrc to specify token access. Do not describe how to get the toke - it's assumed the user know hows to operate GitHub.
+Project is coded using Ansible on OSX. It is mandatory to document system configuration to prepare for development. It should be validated that user has all tools and required access to github repository. Use git, gh, and `.netrc` to specify token access. Do not describe how to get the toke - it's assumed the user know hows to operate GitHub.
 
 ### GHC-3. GitHub Collection
 
-Transform all existing task-sets into Roles gathered in GitHub Collection. Main flow.yml uses roles from this collection. On this stage collection is kept locally in `./collections/ansible_collections` to be available for playbook without any installation.
+Transform all existing task-sets from `github-task-sets` directory into Ansible Roles gathered in GitHub Collection with FQCN `rstyczynski.github`. Main `flow.yml` uses now roles from this collection. On this stage collection is kept locally in `./collections/ansible_collections` to be available for the playbook without any installation.
 
-Collection name: rstyczynski.github
-Collection working directory: $repo_root/github_collection/collections/ansible_collections
-flow.yml location: $repo_root/github_collection/flow.yml
+|Item|Value|
+|---|---|
+|Collection FQCN|rstyczynski.github|
+|Product directory|$repo_root/github_collection|
+|Collection working directory|$repo_root/github_collection/collections/ansible_collections|
+|flow.yml location|$repo_root/github_collection/flow.yml|
+
+Having it update trigger file `1.trigger` and process `flow.yml` that should execute. In case of execution failure due to status check timeout, execute again to register success. Propose more tests to be executed.
+
+### GHC-4. GitHub Collection roles support input / output specification
+
+Role validates arguments and document produced attributes following `input_output_rule_spec.md` specification available in Ansible specific rules. The rules are available in RUBStrikesBack or in this project's `rules/specific/ansible` directory.
+
+Produce `ansible-doc` documentation for all the roles concluding this task. In case of missing description for a role - add it. You can do it as we are working with generic GitHub procedures. Use up to five sentences to describe each role. The same for arguments and output attributes.

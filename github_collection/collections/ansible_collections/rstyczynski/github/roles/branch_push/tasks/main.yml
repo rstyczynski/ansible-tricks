@@ -1,0 +1,24 @@
+# INPUT VARIABLES TABLE
+# | name                  | type   | description                                 |
+# |-----------------------|--------|---------------------------------------------|
+# | branch_push_dest_path | string | Destination path to the git repository      |
+#
+# OUTPUT VARIABLES TABLE
+# | name                      | type   | description                                    |
+# |---------------------------|--------|------------------------------------------------|
+# | branch_push_git_push_result| dict  | Result of pushing to remote                   |
+---
+- name: "Push: Validate arguments"
+  ansible.builtin.validate_argument_spec:
+    argument_spec:
+      branch_push_dest_path:
+        type: str
+        required: true
+        description: Destination path to the git repository
+
+- name: "Push: Push current branch to remote"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git push origin HEAD
+    chdir: "{{ branch_push_dest_path }}"
+  register: branch_push_git_push_result
+  changed_when: branch_push_git_push_result.rc == 0

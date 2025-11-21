@@ -1,0 +1,168 @@
+# INPUT VARIABLES TABLE
+# | name                           | type   | description                                 |
+# |--------------------------------|--------|---------------------------------------------|
+# | branch_checkout_new_branch     | string | Name of the branch to checkout or create    |
+# | branch_checkout_dest_path      | string | Destination path to the git repository      |
+# | branch_checkout_base_branch    | string | Base branch name to checkout before creating |
+# | branch_checkout_push_new_branch| bool   | Whether to push new branch to remote         |
+#
+# OUTPUT VARIABLES TABLE
+# | name                                      | type   | description                                    |
+# |-------------------------------------------|--------|------------------------------------------------|
+# | branch_checkout_branch_check              | dict   | Result of checking if branch exists locally   |
+# | branch_checkout_remote_branch_check       | dict   | Result of checking if branch exists remotely |
+# | branch_checkout_current_branch_before_checkout| dict | Current branch before checkout                |
+# | branch_checkout_checkout_result           | dict   | Result of checking out existing branch        |
+# | branch_checkout_current_branch_before_base| dict   | Current branch before base checkout           |
+# | branch_checkout_create_branch_result      | dict   | Result of creating new branch                 |
+# | branch_checkout_current_branch_before_switch| dict | Current branch before switching               |
+# | branch_checkout_push_branch_result        | dict   | Result of pushing branch to remote            |
+# | branch_checkout_current_branch            | dict   | Current branch after checkout                 |
+---
+- name: "Branch: Validate arguments"
+  ansible.builtin.validate_argument_spec:
+    argument_spec:
+      branch_checkout_new_branch:
+        type: str
+        required: true
+        description: Name of the branch to checkout or create
+      branch_checkout_dest_path:
+        type: str
+        required: true
+        description: Destination path to the git repository
+      branch_checkout_base_branch:
+        type: str
+        required: true
+        description: Base branch name to checkout before creating
+      branch_checkout_push_new_branch:
+        type: bool
+        required: false
+        description: Whether to push new branch to remote
+
+- name: "Branch: Check if branch already exists locally"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --list {{ branch_checkout_new_branch }}
+    chdir: "{{ branch_checkout_dest_path }}"
+  register: branch_checkout_branch_check
+  changed_when: false
+
+- name: "Branch: Check if branch exists remotely"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git ls-remote --heads origin {{ branch_checkout_new_branch }}
+    chdir: "{{ branch_checkout_dest_path }}"
+  register: branch_checkout_remote_branch_check
+  changed_when: false
+  failed_when: false
+
+- name: "Branch: Fetch latest changes from remote"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git fetch origin
+    chdir: "{{ branch_checkout_dest_path }}"
+  when: branch_checkout_remote_branch_check.stdout != ""
+  changed_when: false
+
+- name: "Branch: Get current branch before checkout"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ branch_checkout_dest_path }}"
+  when:
+    - branch_checkout_branch_check.stdout == ""
+    - branch_checkout_remote_branch_check.stdout != ""
+  register: branch_checkout_current_branch_before_checkout
+  changed_when: false
+
+- name: "Branch: Checkout existing branch from remote if it exists"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git checkout {{ branch_checkout_new_branch }}
+    chdir: "{{ branch_checkout_dest_path }}"
+  when:
+    - branch_checkout_branch_check.stdout == ""
+    - branch_checkout_remote_branch_check.stdout != ""
+    - (branch_checkout_current_branch_before_checkout.stdout | default('')) != branch_checkout_new_branch
+  register: branch_checkout_checkout_result
+  changed_when: branch_checkout_checkout_result.rc == 0
+
+- name: "Branch: Get current branch before base checkout"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ branch_checkout_dest_path }}"
+  when:
+    - branch_checkout_branch_check.stdout == ""
+    - branch_checkout_remote_branch_check.stdout == ""
+  register: branch_checkout_current_branch_before_base
+  changed_when: false
+
+- name: "Branch: Checkout base branch before creating new branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git checkout {{ branch_checkout_base_branch }}
+    chdir: "{{ branch_checkout_dest_path }}"
+  when:
+    - branch_checkout_branch_check.stdout == ""
+    - branch_checkout_remote_branch_check.stdout == ""
+    - (branch_checkout_current_branch_before_base.stdout | default('')) != branch_checkout_base_branch
+  changed_when: false
+
+- name: "Branch: Create new branch (idempotent)"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git checkout -b {{ branch_checkout_new_branch }}
+    chdir: "{{ branch_checkout_dest_path }}"
+  when:
+    - branch_checkout_branch_check.stdout == ""
+    - branch_checkout_remote_branch_check.stdout == ""
+  register: branch_checkout_create_branch_result
+  changed_when: branch_checkout_create_branch_result.rc == 0
+
+- name: "Branch: Get current branch before switching"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ branch_checkout_dest_path }}"
+  when:
+    - branch_checkout_branch_check.stdout != ""
+    - branch_checkout_remote_branch_check.stdout == ""
+  register: branch_checkout_current_branch_before_switch
+  changed_when: false
+
+- name: "Branch: Switch to existing local branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git checkout {{ branch_checkout_new_branch }}
+    chdir: "{{ branch_checkout_dest_path }}"
+  when:
+    - branch_checkout_branch_check.stdout != ""
+    - branch_checkout_remote_branch_check.stdout == ""
+    - (branch_checkout_current_branch_before_switch.stdout | default('')) != branch_checkout_new_branch
+  changed_when: false
+
+- name: "Branch: Push new branch to remote"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git push origin {{ branch_checkout_new_branch }}
+    chdir: "{{ branch_checkout_dest_path }}"
+  when:
+    - branch_checkout_push_new_branch | bool
+    - branch_checkout_branch_check.stdout != ""
+    - branch_checkout_remote_branch_check.stdout == ""
+  register: branch_checkout_push_branch_result
+  changed_when: branch_checkout_push_branch_result.rc == 0 and branch_checkout_push_branch_result.stdout != ""
+
+- name: "Branch: Get current branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ branch_checkout_dest_path }}"
+  register: branch_checkout_current_branch
+  changed_when: false
+
+- name: "Branch: Display result"
+
+  ansible.builtin.debug:
+    msg: "Currently on branch: {{ branch_checkout_current_branch.stdout }}"

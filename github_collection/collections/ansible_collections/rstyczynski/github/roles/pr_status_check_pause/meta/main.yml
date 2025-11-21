@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  author: rstyczynski
+  description: Check PR status with retry and pause mechanism
+  company: Personal
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: MacOSX
+      versions:
+        - all
+  galaxy_tags:
+    - github
+    - git
+    - pr
+    - pullrequest
+    - status
+    - retry
+dependencies: []

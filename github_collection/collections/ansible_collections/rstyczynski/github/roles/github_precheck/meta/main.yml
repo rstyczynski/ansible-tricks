@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: rstyczynski
+  description: Verify Git and GitHub CLI installation and authentication
+  company: Personal
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: MacOSX
+      versions:
+        - all
+  galaxy_tags:
+    - github
+    - git
+    - precheck
+    - validation
+dependencies: []

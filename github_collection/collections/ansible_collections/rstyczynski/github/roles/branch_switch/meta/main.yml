@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: rstyczynski
+  description: Switch to a different Git branch
+  company: Personal
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: MacOSX
+      versions:
+        - all
+  galaxy_tags:
+    - github
+    - git
+    - branch
+    - switch
+dependencies: []

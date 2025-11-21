@@ -1,0 +1,44 @@
+# INPUT VARIABLES TABLE
+# | name                                | type   | description                                 |
+# |-------------------------------------|--------|---------------------------------------------|
+# | pr_status_check_pause_pr_status_check_delay| int | Seconds to wait between retry attempts |
+# | pr_status_check_pause_has_pending_checks| bool | Whether there are pending checks        |
+# | pr_status_check_pause_attempt_number| int    | Current attempt number                     |
+# | pr_status_check_pause_pr_status_check_retries| int | Number of retry attempts              |
+#
+# OUTPUT VARIABLES TABLE
+# | name  | type | description                                    |
+# |-------|------|------------------------------------------------|
+---
+- name: "PR Check: Validate arguments"
+  ansible.builtin.validate_argument_spec:
+    argument_spec:
+      pr_status_check_pause_pr_status_check_delay:
+        type: int
+        required: true
+        description: Seconds to wait between retry attempts
+      pr_status_check_pause_pr_status_check_retries:
+        type: int
+        required: true
+        description: Number of retry attempts
+      pr_status_check_pause_has_pending_checks:
+        type: bool
+        required: false
+        description: Whether there are pending checks
+      pr_status_check_pause_attempt_number:
+        type: int
+        required: false
+        description: Current attempt number
+
+- name: "PR Check: Check PR status"
+
+  ansible.builtin.include_tasks: pr_status_check.yml
+
+- name: "PR Check: Wait before next attempt"
+
+  ansible.builtin.pause:
+    seconds: "{{ pr_status_check_pause_pr_status_check_delay }}"
+  when:
+    - pr_status_check_pause_has_pending_checks is defined
+    - pr_status_check_pause_has_pending_checks | bool
+    - pr_status_check_pause_attempt_number < pr_status_check_pause_pr_status_check_retries
