@@ -1,0 +1,118 @@
+---
+- name: "PR Merge: Get current branch name"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  register: current_branch
+  changed_when: false
+
+- name: "PR Merge: Get PR number for current branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr list --head {{ current_branch.stdout }} --json number --jq '.[0].number'
+    chdir: "{{ dest_path }}"
+  register: pr_number
+  changed_when: false
+  failed_when: false
+
+- name: "PR Merge: Fail if no PR exists for current branch"
+
+  ansible.builtin.fail:
+    msg: "No pull request found for branch {{ current_branch.stdout }}"
+  when: pr_number.stdout == ""
+
+- name: "PR Merge: Get PR state"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr view {{ pr_number.stdout }} --json state,mergeable,mergeStateStatus --jq '.'
+    chdir: "{{ dest_path }}"
+  register: pr_state
+  changed_when: false
+
+- name: "PR Merge: Parse PR state"
+
+  ansible.builtin.set_fact:
+    pr_info: "{{ pr_state.stdout | from_json }}"
+
+- name: "PR Merge: Display PR already merged"
+
+  ansible.builtin.debug:
+    msg: "PR #{{ pr_number.stdout }} is already merged"
+  when: pr_info.state == "MERGED"
+
+- name: "PR Merge: Check if PR is mergeable"
+
+  ansible.builtin.fail:
+    msg: "PR #{{ pr_number.stdout }} is not mergeable. State: {{ pr_info.mergeStateStatus }}"
+  when:
+    - pr_info.state != "MERGED"
+    - pr_info.mergeable != "MERGEABLE"
+
+- name: "PR Merge: Get PR status checks"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr view {{ pr_number.stdout }} --json statusCheckRollup --jq '.statusCheckRollup'
+    chdir: "{{ dest_path }}"
+  register: pr_status_checks_for_merge
+  changed_when: false
+  when: pr_info.state != "MERGED"
+
+- name: "PR Merge: Parse status checks for merge"
+
+  ansible.builtin.set_fact:
+    status_checks_for_merge: "{{ pr_status_checks_for_merge.stdout | from_json }}"
+  when:
+    - pr_info.state != "MERGED"
+    - pr_status_checks_for_merge.stdout != ""
+    - pr_status_checks_for_merge.stdout != "null"
+
+- name: "PR Merge: Check for failed status checks"
+
+  ansible.builtin.set_fact:
+    failed_checks_for_merge: >-
+      {{ status_checks_for_merge |
+      selectattr('status', 'equalto', 'COMPLETED') |
+      rejectattr('conclusion', 'in', ['SUCCESS', 'NEUTRAL', 'SKIPPED']) |
+      list }}
+    pending_checks_for_merge: >-
+      {{ status_checks_for_merge |
+      rejectattr('status', 'equalto', 'COMPLETED') |
+      list }}
+  when:
+    - pr_info.state != "MERGED"
+    - status_checks_for_merge is defined
+    - status_checks_for_merge | length > 0
+
+- name: "PR Merge: Fail if status checks failed"
+
+  ansible.builtin.fail:
+    msg: "Cannot merge PR #{{ pr_number.stdout }}: {{ failed_checks_for_merge | length }} status check(s) failed"
+  when:
+    - pr_info.state != "MERGED"
+    - failed_checks_for_merge is defined
+    - failed_checks_for_merge | length > 0
+
+- name: "PR Merge: Fail if status checks pending"
+
+  ansible.builtin.fail:
+    msg: "Cannot merge PR #{{ pr_number.stdout }}: {{ pending_checks_for_merge | length }} status check(s) still pending"
+  when:
+    - pr_info.state != "MERGED"
+    - pending_checks_for_merge is defined
+    - pending_checks_for_merge | length > 0
+
+- name: "PR Merge: Merge PR"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr merge {{ pr_number.stdout }} --{{ pr_merge_method | default('merge') }}
+    chdir: "{{ dest_path }}"
+  when: pr_info.state != "MERGED"
+  register: pr_merge_result
+  changed_when: pr_merge_result.rc == 0
+
+- name: "PR Merge: Display merge success"  # noqa: command-instead-of-module
+
+  ansible.builtin.debug:
+    msg: "PR #{{ pr_number.stdout }} merged successfully using {{ pr_merge_method | default('merge') }} method"
+  when: pr_merge_result is changed

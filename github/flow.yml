@@ -1,0 +1,114 @@
+---
+# Set common variables for the workflow
+- name: Set variables for workflow
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    repo_url: "https://github.com/rstyczynski/github_lab.git"
+    dest_path: "./github_lab"
+    base_branch: "main"  # or "master" depending on the repo
+    new_branch: "my-new-feature"
+    push_new_branch: true
+    file_source: "./1.trigger"  # Source file to copy (leave empty to work with existing file in repo)
+    file_path: ""  # Path to file in repo (leave empty to auto-extract from file_source)
+    commit_message: ""  # Optional commit message
+    pr_title: ""  # Optional PR title (defaults to branch name)
+    pr_body: ""  # Optional PR body/description
+    pr_comment: "PLAN"  # Optional PR comment to add
+    pr_status_check_retries: 6  # Number of retry attempts for PR status checks
+    pr_status_check_delay: 5  # Seconds to wait between retry attempts
+    pr_merge: true  # Set to true to merge PR after status checks pass
+    pr_merge_method: "merge"  # Merge method: merge, squash, or rebase
+    pr_pull_latest: true  # Set to true to pull latest changes from base branch after PR is merged
+    branch_delete: true  # Set to true to delete branch after PR is merged
+    delete_branch: ""  # Branch to delete (defaults to new_branch if empty)
+
+  tasks:
+    - name: Execute GitHub workflow
+      block:
+        - name: Precheck
+          ansible.builtin.import_tasks: github_precheck.yml
+
+        - name: Authenticate GitHub CLI
+          ansible.builtin.import_tasks: github_auth.yml
+
+        - name: Clone Repository
+          ansible.builtin.import_tasks: repo_clone.yml
+
+        - name: Create and Switch to Branch
+          ansible.builtin.import_tasks: branch_checkout.yml
+
+        - name: Add File to Repository
+          ansible.builtin.import_tasks: repo_file_add.yml
+
+        - name: Commit Changes
+          ansible.builtin.import_tasks: repo_commit.yml
+
+        - name: Push Changes
+          ansible.builtin.import_tasks: branch_push.yml
+
+        - name: Create Pull Request
+          ansible.builtin.import_tasks: pr_create.yml
+
+        - name: Check PR status with retry
+          ansible.builtin.include_tasks: pr_status_check_pause.yml
+          loop: "{{ range(1, pr_status_check_retries + 1) | list }}"
+          loop_control:
+            loop_var: attempt_number
+          when: has_pending_checks is not defined or has_pending_checks | bool
+
+        - name: Fail if checks still pending after all attempts
+          ansible.builtin.fail:
+            msg: >-
+              PR status checks did not complete within
+              {{ pr_status_check_retries * pr_status_check_delay }} seconds
+              ({{ pr_status_check_retries }} attempts)
+          when: has_pending_checks is defined and has_pending_checks | bool
+
+        - name: "Add comment to PR"
+          ansible.builtin.import_tasks: pr_comment.yml
+
+        - name: "Merge PR"
+          ansible.builtin.import_tasks: pr_merge.yml
+          when: pr_merge is defined and pr_merge | bool
+
+        - name: "Set branch to switch to"
+          ansible.builtin.set_fact:
+            switch_to_branch: "{{ base_branch }}"
+          when: pr_merge is defined and pr_merge | bool
+
+        - name: "Switch to base branch"
+          ansible.builtin.import_tasks: branch_switch.yml
+          when: pr_merge is defined and pr_merge | bool
+
+        - name: "Pull latest changes from base branch"
+          ansible.builtin.import_tasks: branch_pull.yml
+          when: pr_pull_latest is defined and pr_pull_latest | bool
+
+        - name: "Delete branch"
+          ansible.builtin.import_tasks: branch_delete.yml
+          when: branch_delete is defined and branch_delete | bool
+
+        - name: "Display success message"
+          ansible.builtin.debug:
+            msg: "Workflow completed successfully"
+
+      rescue:
+        - name: "Display error message"
+          ansible.builtin.debug:
+            msg: "Workflow failed, cleaning up..."
+
+        - name: Set failure flag
+          ansible.builtin.set_fact:
+            workflow_failed: true
+
+      always:
+        - name: Logout from GitHub CLI
+          ansible.builtin.import_tasks: github_logout.yml
+
+        - name: Fail if workflow had errors
+          ansible.builtin.fail:
+            msg: "Workflow failed - check errors above"
+          when: workflow_failed is defined and workflow_failed | bool

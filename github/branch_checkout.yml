@@ -1,0 +1,128 @@
+---
+- name: "Branch: Check if branch already exists locally"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --list {{ new_branch }}
+    chdir: "{{ dest_path }}"
+  register: branch_check
+  changed_when: false
+
+- name: "Branch: Check if branch exists remotely"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git ls-remote --heads origin {{ new_branch }}
+    chdir: "{{ dest_path }}"
+  register: remote_branch_check
+  changed_when: false
+  failed_when: false
+
+- name: "Branch: Fetch latest changes from remote"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git fetch origin
+    chdir: "{{ dest_path }}"
+  when: remote_branch_check.stdout != ""
+  changed_when: false
+
+- name: "Branch: Get current branch before checkout"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  when:
+    - branch_check.stdout == ""
+    - remote_branch_check.stdout != ""
+  register: current_branch_before_checkout
+  changed_when: false
+
+- name: "Branch: Checkout existing branch from remote if it exists"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git checkout {{ new_branch }}
+    chdir: "{{ dest_path }}"
+  when:
+    - branch_check.stdout == ""
+    - remote_branch_check.stdout != ""
+    - (current_branch_before_checkout.stdout | default('')) != new_branch
+  register: checkout_result
+  changed_when: checkout_result.rc == 0
+
+- name: "Branch: Get current branch before base checkout"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  when:
+    - branch_check.stdout == ""
+    - remote_branch_check.stdout == ""
+  register: current_branch_before_base
+  changed_when: false
+
+- name: "Branch: Checkout base branch before creating new branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git checkout {{ base_branch }}
+    chdir: "{{ dest_path }}"
+  when:
+    - branch_check.stdout == ""
+    - remote_branch_check.stdout == ""
+    - (current_branch_before_base.stdout | default('')) != base_branch
+  changed_when: false
+
+- name: "Branch: Create new branch (idempotent)"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git checkout -b {{ new_branch }}
+    chdir: "{{ dest_path }}"
+  when:
+    - branch_check.stdout == ""
+    - remote_branch_check.stdout == ""
+  register: create_branch_result
+  changed_when: create_branch_result.rc == 0
+
+- name: "Branch: Get current branch before switching"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  when:
+    - branch_check.stdout != ""
+    - remote_branch_check.stdout == ""
+  register: current_branch_before_switch
+  changed_when: false
+
+- name: "Branch: Switch to existing local branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git checkout {{ new_branch }}
+    chdir: "{{ dest_path }}"
+  when:
+    - branch_check.stdout != ""
+    - remote_branch_check.stdout == ""
+    - (current_branch_before_switch.stdout | default('')) != new_branch
+  changed_when: false
+
+- name: "Branch: Push new branch to remote"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git push origin {{ new_branch }}
+    chdir: "{{ dest_path }}"
+  when:
+    - push_new_branch | bool
+    - branch_check.stdout != ""
+    - remote_branch_check.stdout == ""
+  register: push_branch_result
+  changed_when: push_branch_result.rc == 0 and push_branch_result.stdout != ""
+
+- name: "Branch: Get current branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  register: current_branch
+  changed_when: false
+
+- name: "Branch: Display result"
+
+  ansible.builtin.debug:
+    msg: "Currently on branch: {{ current_branch.stdout }}"

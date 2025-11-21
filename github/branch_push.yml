@@ -1,0 +1,9 @@
+---
+- name: "Push: Push current branch to remote"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git push origin HEAD
+    chdir: "{{ dest_path }}"
+  #always push, even if no changes were committed
+  #when: git_commit_result is changed
+  register: git_push_result
+  changed_when: git_push_result.rc == 0

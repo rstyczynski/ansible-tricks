@@ -1,0 +1,29 @@
+---
+- name: "Commit: Check git status"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git status --porcelain
+    chdir: "{{ dest_path }}"
+  register: git_status
+  changed_when: false
+
+- name: "Commit: Set commit message"
+  ansible.builtin.set_fact:
+    final_commit_message: >-
+      {% if commit_message is defined and commit_message != "" %}
+      {{ commit_message }}
+      {% else %}
+      Add file: {{ file_path }}
+      {% endif %}
+
+- name: "Commit: Commit changes if staged"
+  ansible.builtin.command:
+    cmd: git commit -m "{{ final_commit_message }}"
+    chdir: "{{ dest_path }}"
+  when: git_status.stdout != ""
+  register: git_commit_result
+  changed_when: git_commit_result.rc == 0
+
+- name: "Commit: Display git status"
+  ansible.builtin.debug:
+    msg: "{{ git_status.stdout_lines }}"
+  when: git_status.stdout != ""

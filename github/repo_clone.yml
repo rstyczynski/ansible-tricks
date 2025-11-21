@@ -1,0 +1,67 @@
+---
+- name: "Clone: Check if repository exists"
+  ansible.builtin.stat:
+    path: "{{ dest_path }}/.git"
+  register: repo_exists
+
+- name: "Clone: Clone repository if it doesn't exist"
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ dest_path }}"
+    version: "{{ base_branch }}"
+    clone: true
+    update: false
+  when: not repo_exists.stat.exists
+  register: git_result
+
+- name: "Clone: Get current active branch name"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  when: repo_exists.stat.exists
+  register: current_branch
+  changed_when: false
+  failed_when: false
+
+- name: "Clone: Display current branch name"
+  ansible.builtin.debug:
+    msg: "{{ current_branch.stdout }} vs {{ new_branch }}"
+  when: repo_exists.stat.exists and current_branch.stdout is defined
+
+- name: "Clone: Check if local branch is pushed to remote"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git ls-remote --heads origin {{ current_branch }}
+    chdir: "{{ dest_path }}"
+  when: repo_exists.stat.exists
+  register: remote_branch_check
+  changed_when: false
+  failed_when: false
+
+- name: "Clone: Display remote branch check"
+  ansible.builtin.debug:
+    msg: "{{ remote_branch_check.stdout }}"
+  when: repo_exists.stat.exists and remote_branch_check.stdout is defined
+
+- name: "Clone: Update repository base_branch if it's active one"
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ dest_path }}"
+    version: "{{ base_branch }}"
+    update: true
+  when:
+    - repo_exists.stat.exists
+    - (current_branch.stdout | default('')) != new_branch
+    - (current_branch.stdout | default('')) == base_branch
+  register: git_result
+
+- name: "Clone: Update repository new_branch if it's the active one and pushed to remote"
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ dest_path }}"
+    version: "{{ new_branch }}"
+    update: true
+  when:
+    - repo_exists.stat.exists
+    - (current_branch.stdout | default('')) == new_branch
+    - remote_branch_check.stdout != ""
+  register: git_result

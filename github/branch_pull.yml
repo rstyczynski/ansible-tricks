@@ -1,0 +1,67 @@
+---
+- name: "PR Pull: Get current branch name"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  register: current_branch_for_pull
+  changed_when: false
+
+- name: "PR Pull: Check if current branch has remote tracking"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git rev-parse --abbrev-ref @{upstream}
+    chdir: "{{ dest_path }}"
+  register: remote_tracking
+  changed_when: false
+  failed_when: false
+
+- name: "PR Pull: Skip if no remote tracking branch"
+  ansible.builtin.meta: end_host
+  when: remote_tracking.rc != 0
+
+- name: "PR Pull: Fetch latest changes from remote"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git fetch origin
+    chdir: "{{ dest_path }}"
+  register: git_fetch_result
+  changed_when: git_fetch_result.rc == 0
+
+- name: "PR Pull: Check if local is behind remote"  # noqa: command-instead-of-module
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      LOCAL=$(git rev-parse @)
+      REMOTE=$(git rev-parse @{upstream})
+      if [ "$LOCAL" = "$REMOTE" ]; then
+        echo "up-to-date"
+      else
+        git rev-list --count HEAD..@{upstream}
+      fi
+    chdir: "{{ dest_path }}"
+  args:
+    executable: /bin/bash
+  register: behind_check
+  changed_when: false
+
+- name: "PR Pull: Display sync status"
+  ansible.builtin.debug:
+    msg: "Branch {{ current_branch_for_pull.stdout }} is {{ 'up-to-date' if behind_check.stdout == 'up-to-date' else behind_check.stdout + ' commits behind remote' }}"
+
+- name: "PR Pull: Pull latest changes if behind"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git pull --ff-only
+    chdir: "{{ dest_path }}"
+  when: behind_check.stdout != "up-to-date"
+  register: git_pull_result
+  changed_when: git_pull_result.rc == 0
+
+- name: "PR Pull: Display pull result"
+  ansible.builtin.debug:
+    msg: "Successfully pulled {{ behind_check.stdout }} commits from remote"
+  when:
+    - git_pull_result is changed
+    - behind_check.stdout != "up-to-date"
+
+- name: "PR Pull: Display already up-to-date"
+  ansible.builtin.debug:
+    msg: "Branch {{ current_branch_for_pull.stdout }} is already up-to-date with remote"
+  when: behind_check.stdout == "up-to-date"

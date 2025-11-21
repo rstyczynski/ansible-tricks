@@ -1,0 +1,173 @@
+# INPUT VARIABLES TABLE
+# | name                      | type   | description                                 |
+# |---------------------------|--------|---------------------------------------------|
+# | pr_status_check_gh_version| dict   | GitHub CLI version check result             |
+# | pr_status_check_gh_auth_status| dict | GitHub CLI authentication status             |
+# | pr_status_check_dest_path| string | Destination path to the git repository      |
+#
+# OUTPUT VARIABLES TABLE
+# | name                          | type   | description                                    |
+# |-------------------------------|--------|------------------------------------------------|
+# | pr_status_check_current_branch| dict   | Current branch name                            |
+# | pr_status_check_pr_number     | dict   | PR number for current branch                    |
+# | pr_status_check_pr_status_checks| dict | PR status checks information                    |
+# | pr_status_check_status_checks | list   | Parsed status checks                           |
+# | pr_status_check_total_checks  | int    | Total number of status checks                   |
+# | pr_status_check_failed_checks | list   | Failed status checks                           |
+# | pr_status_check_pending_checks| list   | Pending status checks                          |
+# | pr_status_check_passed_checks | list   | Passed status checks                           |
+# | pr_status_check_has_pending_checks| bool | Whether there are pending checks            |
+---
+- name: "PR Status: Check input variables"
+  ansible.builtin.assert:
+    that:
+      - pr_status_check_gh_version is defined
+      - pr_status_check_gh_auth_status is defined
+      - pr_status_check_dest_path is defined
+    fail_msg: "Required input variables are missing"
+    quiet: true
+
+- name: "PR Status: Fail if gh CLI is not installed"
+
+  ansible.builtin.fail:
+    msg: "GitHub CLI (gh) is not installed. Please install it first: https://cli.github.com/"
+  when: pr_status_check_gh_version.rc != 0
+
+- name: "PR Status: Fail if gh CLI is not authenticated"
+
+  ansible.builtin.fail:
+    msg: "GitHub CLI is not authenticated. Please run: gh auth login"
+  when: pr_status_check_gh_version.rc == 0 and pr_status_check_gh_auth_status.rc != 0
+
+- name: "PR Status: Get current branch name"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ pr_status_check_dest_path }}"
+  register: pr_status_check_current_branch
+  changed_when: false
+
+- name: "PR Status: Get PR number for current branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr list --head {{ pr_status_check_current_branch.stdout }} --json number --jq '.[0].number'
+    chdir: "{{ pr_status_check_dest_path }}"
+  register: pr_status_check_pr_number
+  changed_when: false
+  failed_when: false
+
+- name: "PR Status: Fail if no PR exists for current branch"
+
+  ansible.builtin.fail:
+    msg: "No pull request found for branch {{ pr_status_check_current_branch.stdout }}"
+  when: pr_status_check_pr_number.stdout == ""
+
+- name: "PR Status: Get PR status checks"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr view {{ pr_status_check_pr_number.stdout }} --json statusCheckRollup --jq '.statusCheckRollup'
+    chdir: "{{ pr_status_check_dest_path }}"
+  register: pr_status_check_pr_status_checks
+  changed_when: false
+  failed_when: false
+
+- name: "PR Status: Parse status checks"
+
+  ansible.builtin.set_fact:
+    pr_status_check_status_checks: "{{ pr_status_check_pr_status_checks.stdout | from_json }}"
+  when: pr_status_check_pr_status_checks.stdout != "" and pr_status_check_pr_status_checks.stdout != "null"
+
+- name: "PR Status: Display status when no checks exist"
+
+  ansible.builtin.debug:
+    msg: "No status checks configured for this PR"
+  when: pr_status_check_pr_status_checks.stdout == "" or pr_status_check_pr_status_checks.stdout == "null" or pr_status_check_pr_status_checks.stdout == "[]"
+
+- name: "PR Status: Count status checks"
+
+  ansible.builtin.set_fact:
+    pr_status_check_total_checks: "{{ pr_status_check_status_checks | length }}"
+    pr_status_check_failed_checks: "{{ pr_status_check_status_checks | selectattr('status', 'equalto', 'COMPLETED') | rejectattr('conclusion', 'in', ['SUCCESS', 'NEUTRAL', 'SKIPPED']) | list }}"
+    pr_status_check_pending_checks: "{{ pr_status_check_status_checks | rejectattr('status', 'equalto', 'COMPLETED') | list }}"
+    pr_status_check_passed_checks: "{{ pr_status_check_status_checks | selectattr('status', 'equalto', 'COMPLETED') | selectattr('conclusion', 'in', ['SUCCESS', 'NEUTRAL', 'SKIPPED']) | list }}"
+  when: pr_status_check_status_checks is defined and pr_status_check_status_checks | length > 0
+
+- name: "PR Status: Display status check summary"
+
+  ansible.builtin.debug:
+    msg:
+      - "Total status checks: {{ pr_status_check_total_checks }}"
+      - "Passed checks: {{ pr_status_check_passed_checks | length }}"
+      - "Failed checks: {{ pr_status_check_failed_checks | length }}"
+      - "Pending checks: {{ pr_status_check_pending_checks | length }}"
+  when: pr_status_check_status_checks is defined and pr_status_check_status_checks | length > 0
+
+- name: "PR Status: Display failed checks"
+
+  ansible.builtin.debug:
+    msg: "Failed check: {{ item.name }} - {{ item.conclusion }}"
+  loop: "{{ pr_status_check_failed_checks }}"
+  when:
+    - pr_status_check_status_checks is defined
+    - pr_status_check_failed_checks is defined
+    - pr_status_check_failed_checks | length > 0
+
+- name: "PR Status: Display pending checks"
+
+  ansible.builtin.debug:
+    msg: "Pending check: {{ item.name }}"
+  loop: "{{ pr_status_check_pending_checks }}"
+  when:
+    - pr_status_check_status_checks is defined
+    - pr_status_check_pending_checks is defined
+    - pr_status_check_pending_checks | length > 0
+
+- name: "PR Status: Display pending checks info"
+
+  ansible.builtin.debug:
+    msg: "{{ pr_status_check_pending_checks | length }} status check(s) still pending/in progress"
+  when:
+    - pr_status_check_status_checks is defined
+    - pr_status_check_pending_checks is defined
+    - pr_status_check_pending_checks | length > 0
+
+- name: "PR Status: Set fact for pending checks"
+
+  ansible.builtin.set_fact:
+    pr_status_check_has_pending_checks: true
+  when:
+    - pr_status_check_status_checks is defined
+    - pr_status_check_pending_checks is defined
+    - pr_status_check_pending_checks | length > 0
+
+- name: "PR Status: Set fact for no pending checks"
+
+  ansible.builtin.set_fact:
+    pr_status_check_has_pending_checks: false
+  when:
+    - pr_status_check_status_checks is defined
+    - pr_status_check_pending_checks is defined
+    - pr_status_check_pending_checks | length == 0
+
+- name: "PR Status: Fail if any status checks failed"
+
+  ansible.builtin.fail:
+    msg: "{{ pr_status_check_failed_checks | length }} status check(s) failed"
+  when:
+    - pr_status_check_status_checks is defined
+    - pr_status_check_failed_checks is defined
+    - pr_status_check_failed_checks | length > 0
+
+- name: "PR Status: Display success message"
+
+  ansible.builtin.debug:
+    msg: "All status checks passed! ({{ pr_status_check_passed_checks | length }} checks completed successfully)"
+  when:
+    - pr_status_check_status_checks is defined
+    - pr_status_check_status_checks | length > 0
+    - pr_status_check_failed_checks is defined
+    - pr_status_check_pending_checks is defined
+    - pr_status_check_passed_checks is defined
+    - pr_status_check_failed_checks | length == 0
+    - pr_status_check_pending_checks | length == 0
+    - pr_status_check_passed_checks | length > 0

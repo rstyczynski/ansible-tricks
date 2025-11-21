@@ -1,0 +1,90 @@
+---
+- name: "PR Create: Fail if gh CLI is not installed"
+
+  ansible.builtin.fail:
+    msg: "GitHub CLI (gh) is not installed. Please install it first: https://cli.github.com/"
+  when: gh_version.rc != 0
+
+- name: "PR Create: Fail if gh CLI is not authenticated"
+
+  ansible.builtin.fail:
+    msg: "GitHub CLI is not authenticated. Please run: gh auth login"
+  when: gh_version.rc == 0 and gh_auth_status.rc != 0
+
+- name: "PR Create: Get current branch name"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  register: current_branch
+  changed_when: false
+
+- name: "PR Create: Check if current branch is pushed to remote"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git ls-remote --heads origin {{ current_branch.stdout }}
+    chdir: "{{ dest_path }}"
+  register: remote_branch_check
+  changed_when: false
+  failed_when: false
+
+- name: "PR Create: Fail if branch is not pushed to remote"
+
+  ansible.builtin.fail:
+    msg: "Branch {{ current_branch.stdout }} is not pushed to remote. Push it first before creating a PR."
+  when: remote_branch_check.stdout == ""
+
+- name: "PR Create: Check if pull request already exists"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr list --head {{ current_branch.stdout }} --json number --jq '.[0].number'
+    chdir: "{{ dest_path }}"
+  register: existing_pr
+  changed_when: false
+  failed_when: false
+
+- name: "PR Create: Set PR title"
+
+  ansible.builtin.set_fact:
+    final_pr_title: >-
+      {% if pr_title is defined and pr_title != "" %}
+      {{ pr_title }}
+      {% else %}
+      {{ current_branch.stdout }}
+      {% endif %}
+
+- name: "PR Create: Set PR body"
+
+  ansible.builtin.set_fact:
+    final_pr_body: >-
+      {% if pr_body is defined and pr_body != "" %}
+      {{ pr_body }}
+      {% else %}
+      Pull request for {{ current_branch.stdout }}
+      {% endif %}
+
+- name: "PR Create: Create pull request if it doesn't exist"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: >
+      gh pr create
+      --base {{ base_branch }}
+      --head {{ current_branch.stdout }}
+      --title "{{ final_pr_title }}"
+      --body "{{ final_pr_body }}"
+    chdir: "{{ dest_path }}"
+  when: existing_pr.stdout == ""
+  register: pr_create_result
+  changed_when: pr_create_result.rc == 0
+
+- name: "PR Create: Display PR information"
+
+  ansible.builtin.debug:
+    msg: "Pull request already exists: #{{ existing_pr.stdout }}"
+  when: existing_pr.stdout != ""
+
+- name: "PR Create: Display new PR information"
+
+  ansible.builtin.debug:
+    msg: "{{ pr_create_result.stdout }}"
+  when: pr_create_result is not skipped and pr_create_result.stdout is defined

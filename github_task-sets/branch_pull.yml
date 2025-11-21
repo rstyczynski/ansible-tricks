@@ -1,0 +1,87 @@
+# INPUT VARIABLES TABLE
+# | name                  | type   | description                                 |
+# |-----------------------|--------|---------------------------------------------|
+# | branch_pull_dest_path | string | Destination path to the git repository      |
+#
+# OUTPUT VARIABLES TABLE
+# | name                          | type   | description                                    |
+# |-------------------------------|--------|------------------------------------------------|
+# | branch_pull_current_branch_for_pull| dict | Current branch name                            |
+# | branch_pull_remote_tracking   | dict   | Remote tracking branch information            |
+# | branch_pull_git_fetch_result  | dict   | Result of fetching from remote                |
+# | branch_pull_behind_check      | dict   | Result of checking if local is behind remote  |
+# | branch_pull_git_pull_result   | dict   | Result of pulling from remote                 |
+---
+- name: "PR Pull: Check input variables"
+  ansible.builtin.assert:
+    that:
+      - branch_pull_dest_path is defined
+    fail_msg: "Required input variables are missing"
+    quiet: true
+
+- name: "PR Pull: Get current branch name"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ branch_pull_dest_path }}"
+  register: branch_pull_current_branch_for_pull
+  changed_when: false
+
+- name: "PR Pull: Check if current branch has remote tracking"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git rev-parse --abbrev-ref @{upstream}
+    chdir: "{{ branch_pull_dest_path }}"
+  register: branch_pull_remote_tracking
+  changed_when: false
+  failed_when: false
+
+- name: "PR Pull: Skip if no remote tracking branch"
+  ansible.builtin.meta: end_host
+  when: branch_pull_remote_tracking.rc != 0
+
+- name: "PR Pull: Fetch latest changes from remote"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git fetch origin
+    chdir: "{{ branch_pull_dest_path }}"
+  register: branch_pull_git_fetch_result
+  changed_when: branch_pull_git_fetch_result.rc == 0
+
+- name: "PR Pull: Check if local is behind remote"  # noqa: command-instead-of-module
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      LOCAL=$(git rev-parse @)
+      REMOTE=$(git rev-parse @{upstream})
+      if [ "$LOCAL" = "$REMOTE" ]; then
+        echo "up-to-date"
+      else
+        git rev-list --count HEAD..@{upstream}
+      fi
+    chdir: "{{ branch_pull_dest_path }}"
+  args:
+    executable: /bin/bash
+  register: branch_pull_behind_check
+  changed_when: false
+
+- name: "PR Pull: Display sync status"
+  ansible.builtin.debug:
+    msg: "Branch {{ branch_pull_current_branch_for_pull.stdout }} is {{ 'up-to-date' if branch_pull_behind_check.stdout == 'up-to-date' else branch_pull_behind_check.stdout + ' commits behind remote' }}"
+
+- name: "PR Pull: Pull latest changes if behind"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git pull --ff-only
+    chdir: "{{ branch_pull_dest_path }}"
+  when: branch_pull_behind_check.stdout != "up-to-date"
+  register: branch_pull_git_pull_result
+  changed_when: branch_pull_git_pull_result.rc == 0
+
+- name: "PR Pull: Display pull result"
+  ansible.builtin.debug:
+    msg: "Successfully pulled {{ branch_pull_behind_check.stdout }} commits from remote"
+  when:
+    - branch_pull_git_pull_result is changed
+    - branch_pull_behind_check.stdout != "up-to-date"
+
+- name: "PR Pull: Display already up-to-date"
+  ansible.builtin.debug:
+    msg: "Branch {{ branch_pull_current_branch_for_pull.stdout }} is already up-to-date with remote"
+  when: branch_pull_behind_check.stdout == "up-to-date"

@@ -1,0 +1,101 @@
+# INPUT VARIABLES TABLE
+# | name                        | type   | description                                 |
+# |-----------------------------|--------|---------------------------------------------|
+# | github_auth_gh_version       | dict   | GitHub CLI version check result             |
+# | github_auth_gh_auth_status   | dict   | GitHub CLI authentication status             |
+#
+# OUTPUT VARIABLES TABLE
+# | name                          | type   | description                                    |
+# |-------------------------------|--------|------------------------------------------------|
+# | github_auth_github_token      | string | GitHub authentication token                    |
+# | github_auth_netrc_file        | dict   | Result of checking .netrc file existence       |
+# | github_auth_netrc_token       | dict   | Token extracted from .netrc file               |
+# | github_auth_gh_auth_result    | dict   | Result of authenticating with GitHub CLI       |
+# | github_auth_gh_auth_verify     | dict   | Result of verifying authentication            |
+---
+- name: "Auth: Check input variables"
+  ansible.builtin.assert:
+    that:
+      - github_auth_gh_version is defined
+      - github_auth_gh_auth_status is defined
+    fail_msg: "Required input variables are missing"
+    quiet: true
+
+- name: "Auth: Check for GitHub token in environment"
+  ansible.builtin.set_fact:
+    github_auth_github_token: "{{ lookup('env', 'GH_TOKEN') | default(lookup('env', 'GITHUB_TOKEN'), true) }}"
+
+- name: "Auth: Check if .netrc file exists"
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.netrc"
+  register: github_auth_netrc_file
+  when: github_auth_github_token == ""
+
+- name: "Auth: Read .netrc file for github.com credentials"  # noqa: command-instead-of-module
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      awk '
+        /^[[:space:]]*#/ { next }
+        /^[[:space:]]*$/ { next }
+        /^[[:space:]]*machine[[:space:]]+github\.com/ { in_github=1; next }
+        in_github && /^[[:space:]]*machine[[:space:]]/ { in_github=0 }
+        in_github && /^[[:space:]]*password[[:space:]]/ { print $2; exit }
+      ' ~/.netrc
+  args:
+    executable: /bin/bash
+  register: github_auth_netrc_token
+  changed_when: false
+  failed_when: false
+  when:
+    - github_auth_github_token == ""
+    - github_auth_netrc_file.stat.exists | default(false)
+
+- name: "Auth: Set token from .netrc if found"
+  ansible.builtin.set_fact:
+    github_auth_github_token: "{{ github_auth_netrc_token.stdout }}"
+  when:
+    - github_auth_github_token == ""
+    - github_auth_netrc_token.stdout is defined
+    - github_auth_netrc_token.stdout != ""
+  no_log: true
+
+- name: "Auth: Display token source"
+  ansible.builtin.debug:
+    msg: "GitHub token found in environment variables"
+  when: github_auth_github_token != "" and (github_auth_netrc_token.stdout is not defined or github_auth_netrc_token.stdout == "")
+
+- name: "Auth: Display token from netrc"
+  ansible.builtin.debug:
+    msg: "GitHub token found in ~/.netrc for github.com"
+  when: github_auth_github_token != "" and github_auth_netrc_token.stdout is defined and github_auth_netrc_token.stdout != ""
+
+- name: "Auth: Warning if no token found"
+  ansible.builtin.debug:
+    msg: "WARNING: No GitHub token found in GH_TOKEN, GITHUB_TOKEN environment variables, or ~/.netrc"
+  when: github_auth_github_token == ""
+
+- name: "Auth: Authenticate gh CLI with token"  # noqa: command-instead-of-module
+  ansible.builtin.shell:
+    cmd: set -o pipefail && echo "{{ github_auth_github_token }}" | gh auth login --with-token
+  args:
+    executable: /bin/bash
+  when:
+    - github_auth_gh_version.rc == 0
+    - github_auth_github_token != ""
+    - github_auth_gh_auth_status.rc != 0
+  register: github_auth_gh_auth_result
+  changed_when: github_auth_gh_auth_result.rc == 0
+  no_log: false
+
+- name: "Auth: Verify authentication after login"  # noqa: command-instead-of-module
+  ansible.builtin.command: gh auth status
+  register: github_auth_gh_auth_verify
+  changed_when: false
+  failed_when: false
+  when: github_auth_gh_auth_result is not skipped and github_auth_gh_auth_result.rc is defined
+
+- name: "Auth: Display authentication success"
+  ansible.builtin.debug:
+    msg: "Successfully authenticated with GitHub CLI using token"
+  when: github_auth_gh_auth_verify is not skipped and github_auth_gh_auth_verify.rc == 0

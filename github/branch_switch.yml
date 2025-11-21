@@ -1,0 +1,27 @@
+---
+- name: "Switch Branch: Get current branch name"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  register: current_branch_before_switch
+  changed_when: false
+
+- name: "Switch Branch: Skip if already on target branch"
+  ansible.builtin.meta: end_host
+  when: current_branch_before_switch.stdout == switch_to_branch
+
+- name: "Switch Branch: Display switch intention"
+  ansible.builtin.debug:
+    msg: "Switching from {{ current_branch_before_switch.stdout }} to {{ switch_to_branch }}"
+
+- name: "Switch Branch: Switch to target branch"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git checkout "{{ switch_to_branch }}"
+    chdir: "{{ dest_path }}"
+  register: checkout_result
+  changed_when: checkout_result.rc == 0
+
+- name: "Switch Branch: Display success"
+  ansible.builtin.debug:
+    msg: "Successfully switched to {{ switch_to_branch }}"
+  when: checkout_result is changed

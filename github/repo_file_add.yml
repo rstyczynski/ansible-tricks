@@ -1,0 +1,66 @@
+---
+- name: "Add: Set file_path from file_source if not provided"
+  ansible.builtin.set_fact:
+    file_path: "{{ file_source | basename }}"
+  when:
+    - file_source is defined
+    - file_source != ""
+    - (file_path is not defined or file_path == "")
+
+- name: "Add: Display auto-detected file_path"
+  ansible.builtin.debug:
+    msg: "Auto-detected file_path: {{ file_path }} from file_source: {{ file_source }}"
+  when:
+    - file_source is defined
+    - file_source != ""
+    - file_path is defined
+
+- name: "Add: Skip if file_path is not provided"
+  ansible.builtin.meta: end_host
+  when: file_path is not defined or file_path == ""
+
+- name: "Add: Copy file from source to repository"
+  ansible.builtin.copy:
+    src: "{{ file_source }}"
+    dest: "{{ dest_path }}/{{ file_path }}"
+    mode: preserve
+  when:
+    - file_source is defined
+    - file_source != ""
+  register: copy_result
+
+- name: "Add: Display copy result"
+  ansible.builtin.debug:
+    msg: "File copied from {{ file_source }} to {{ dest_path }}/{{ file_path }}"
+  when: copy_result is changed
+
+- name: "Add: Check if file exists in repository"
+  ansible.builtin.stat:
+    path: "{{ dest_path }}/{{ file_path }}"
+  register: file_stat
+
+- name: "Add: Fail if file does not exist"
+  ansible.builtin.fail:
+    msg: "File {{ dest_path }}/{{ file_path }} does not exist. Set file_source to copy it or create it manually."
+  when: not file_stat.stat.exists
+
+- name: "Add: Check file git status"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git status --porcelain -- "{{ file_path }}"
+    chdir: "{{ dest_path }}"
+  when:
+    - file_stat.stat.exists
+    - file_stat.stat.isreg
+  register: file_git_status
+  changed_when: false
+
+- name: "Add: Add file to git staging area"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git add "{{ file_path }}"
+    chdir: "{{ dest_path }}"
+  when:
+    - file_stat.stat.exists
+    - file_stat.stat.isreg
+    - file_git_status.stdout != ""
+  register: git_add_result
+  changed_when: git_add_result.rc == 0

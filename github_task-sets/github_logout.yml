@@ -1,0 +1,38 @@
+# INPUT VARIABLES TABLE
+# | name                          | type   | description                                 |
+# |-------------------------------|--------|---------------------------------------------|
+# | github_logout_gh_version      | dict   | GitHub CLI version check result             |
+# | github_logout_gh_auth_result  | dict   | GitHub CLI authentication result            |
+#
+# OUTPUT VARIABLES TABLE
+# | name                          | type   | description                                    |
+# |-------------------------------|--------|------------------------------------------------|
+# | github_logout_gh_logout_result| dict   | Result of logging out from GitHub CLI         |
+---
+- name: "Logout: Check input variables"
+  ansible.builtin.assert:
+    that:
+      - github_logout_gh_version is defined
+      - github_logout_gh_auth_result is defined
+    fail_msg: "Required input variables are missing"
+    quiet: true
+
+- name: "Logout: Logout from gh CLI"  # noqa: command-instead-of-module
+
+  ansible.builtin.command: gh auth logout --hostname github.com
+  register: github_logout_gh_logout_result
+  changed_when: github_logout_gh_logout_result.rc == 0
+  failed_when: false
+  when:
+    - github_logout_gh_version.rc == 0
+    - github_logout_gh_auth_result is defined
+    - github_logout_gh_auth_result is changed
+
+- name: "Logout: Display logout status"
+
+  ansible.builtin.debug:
+    msg: "Logged out from GitHub CLI"
+  when:
+    - github_logout_gh_logout_result is defined
+    - github_logout_gh_logout_result is not skipped
+    - github_logout_gh_logout_result.rc == 0

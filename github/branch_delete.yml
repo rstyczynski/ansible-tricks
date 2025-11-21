@@ -1,0 +1,112 @@
+---
+- name: "Delete Branch: Get current branch name"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  register: current_branch
+  changed_when: false
+
+- name: "Delete Branch: Get branch to delete"
+
+  ansible.builtin.set_fact:
+    branch_to_delete: "{{ delete_branch if (delete_branch is defined and delete_branch != '') else new_branch }}"
+
+- name: "Delete Branch: Skip if no branch specified"
+
+  ansible.builtin.meta: end_host
+  when: branch_to_delete == "" or branch_to_delete is not defined
+
+- name: "Delete Branch: Skip if trying to delete protected branch"
+
+  ansible.builtin.fail:
+    msg: "Cannot delete protected branch {{ branch_to_delete }} (base_branch: {{ base_branch }})"
+  when: branch_to_delete == base_branch
+
+- name: "Delete Branch: Get current branch after setting branch_to_delete"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --show-current
+    chdir: "{{ dest_path }}"
+  register: current_branch_check
+  changed_when: false
+
+- name: "Delete Branch: Display current_branch and branch_to_delete"
+  ansible.builtin.debug:
+    msg: "{{ current_branch_check.stdout }}, {{ branch_to_delete }}"
+
+- name: "Delete Branch: Switch to base branch if currently on branch to delete"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git checkout {{ base_branch }}
+    chdir: "{{ dest_path }}"
+  when: current_branch_check.stdout == branch_to_delete
+  register: checkout_base_result
+  changed_when: checkout_base_result.rc == 0
+
+- name: "Delete Branch: Check if local branch exists"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch --list {{ branch_to_delete }}
+    chdir: "{{ dest_path }}"
+  register: local_branch_check
+  changed_when: false
+  failed_when: false
+
+- name: "Delete Branch: Delete local branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch -d {{branch_to_delete}}
+    chdir: "{{ dest_path }}"
+  when: local_branch_check.stdout != ""
+  register: delete_local_result
+  changed_when: delete_local_result.rc == 0
+  failed_when: false
+
+- name: "Delete Branch: Force delete local branch if normal delete failed"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git branch -D "{{ branch_to_delete }}"
+    chdir: "{{ dest_path }}"
+  when:
+    - local_branch_check.stdout != ""
+    - delete_local_result is not skipped
+    - delete_local_result.rc is defined
+    - delete_local_result.rc != 0
+  register: force_delete_local_result
+  changed_when: force_delete_local_result.rc == 0
+
+- name: "Delete Branch: Check if remote branch exists"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git ls-remote --heads origin {{ branch_to_delete }}
+    chdir: "{{ dest_path }}"
+  register: remote_branch_check
+  changed_when: false
+  failed_when: false
+
+- name: "Delete Branch: Delete remote branch"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: git push origin --delete {{ branch_to_delete }}
+    chdir: "{{ dest_path }}"
+  when: remote_branch_check.stdout != ""
+  register: delete_remote_result
+  changed_when: delete_remote_result.rc == 0
+
+- name: "Delete Branch: Display deletion status"
+
+  ansible.builtin.debug:
+    msg:
+      - "Branch {{ branch_to_delete }} deleted successfully"
+      - "Local branch: {{ 'deleted' if (delete_local_result is changed or force_delete_local_result is changed) else 'not found' }}"
+      - "Remote branch: {{ 'deleted' if delete_remote_result is changed else 'not found' }}"
+  when: delete_local_result is changed or force_delete_local_result is changed or delete_remote_result is changed
+
+- name: "Delete Branch: Display skip message"
+
+  ansible.builtin.debug:
+    msg: "Branch {{ branch_to_delete }} already deleted (not found locally or remotely)"
+  when:
+    - local_branch_check.stdout == ""
+    - remote_branch_check.stdout == ""

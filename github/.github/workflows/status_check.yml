@@ -1,0 +1,15 @@
+name: Status Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Running checks (20 seconds)
+        run: sleep 20
+        
+      - name: Simple check
+        run: echo "Check passed"

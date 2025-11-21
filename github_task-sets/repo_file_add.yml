@@ -1,0 +1,88 @@
+# INPUT VARIABLES TABLE
+# | name                      | type   | description                                 |
+# |---------------------------|--------|---------------------------------------------|
+# | repo_file_add_file_source | string | Source file path to copy (optional)          |
+# | repo_file_add_file_path   | string | File path in repository                      |
+# | repo_file_add_dest_path   | string | Destination path to the git repository      |
+#
+# OUTPUT VARIABLES TABLE
+# | name                          | type   | description                                    |
+# |-------------------------------|--------|------------------------------------------------|
+# | repo_file_add_file_path      | string | File path in repository (set from file_source) |
+# | repo_file_add_copy_result    | dict   | Result of copying file                         |
+# | repo_file_add_file_stat      | dict   | File stat information                          |
+# | repo_file_add_file_git_status| dict   | Git status of file                             |
+# | repo_file_add_git_add_result | dict   | Result of adding file to git                    |
+---
+- name: "Add: Check input variables"
+  ansible.builtin.assert:
+    that:
+      - repo_file_add_dest_path is defined
+    fail_msg: "Required input variables are missing"
+    quiet: true
+
+- name: "Add: Set file_path from file_source if not provided"
+  ansible.builtin.set_fact:
+    repo_file_add_file_path: "{{ repo_file_add_file_source | basename }}"
+  when:
+    - repo_file_add_file_source is defined
+    - repo_file_add_file_source != ""
+    - (repo_file_add_file_path is not defined or repo_file_add_file_path == "")
+
+- name: "Add: Display auto-detected file_path"
+  ansible.builtin.debug:
+    msg: "Auto-detected file_path: {{ repo_file_add_file_path }} from file_source: {{ repo_file_add_file_source }}"
+  when:
+    - repo_file_add_file_source is defined
+    - repo_file_add_file_source != ""
+    - repo_file_add_file_path is defined
+
+- name: "Add: Skip if file_path is not provided"
+  ansible.builtin.meta: end_host
+  when: repo_file_add_file_path is not defined or repo_file_add_file_path == ""
+
+- name: "Add: Copy file from source to repository"
+  ansible.builtin.copy:
+    src: "{{ repo_file_add_file_source }}"
+    dest: "{{ repo_file_add_dest_path }}/{{ repo_file_add_file_path }}"
+    mode: preserve
+  when:
+    - repo_file_add_file_source is defined
+    - repo_file_add_file_source != ""
+  register: repo_file_add_copy_result
+
+- name: "Add: Display copy result"
+  ansible.builtin.debug:
+    msg: "File copied from {{ repo_file_add_file_source }} to {{ repo_file_add_dest_path }}/{{ repo_file_add_file_path }}"
+  when: repo_file_add_copy_result is changed
+
+- name: "Add: Check if file exists in repository"
+  ansible.builtin.stat:
+    path: "{{ repo_file_add_dest_path }}/{{ repo_file_add_file_path }}"
+  register: repo_file_add_file_stat
+
+- name: "Add: Fail if file does not exist"
+  ansible.builtin.fail:
+    msg: "File {{ repo_file_add_dest_path }}/{{ repo_file_add_file_path }} does not exist. Set file_source to copy it or create it manually."
+  when: not repo_file_add_file_stat.stat.exists
+
+- name: "Add: Check file git status"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git status --porcelain -- "{{ repo_file_add_file_path }}"
+    chdir: "{{ repo_file_add_dest_path }}"
+  when:
+    - repo_file_add_file_stat.stat.exists
+    - repo_file_add_file_stat.stat.isreg
+  register: repo_file_add_file_git_status
+  changed_when: false
+
+- name: "Add: Add file to git staging area"  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: git add "{{ repo_file_add_file_path }}"
+    chdir: "{{ repo_file_add_dest_path }}"
+  when:
+    - repo_file_add_file_stat.stat.exists
+    - repo_file_add_file_stat.stat.isreg
+    - repo_file_add_file_git_status.stdout != ""
+  register: repo_file_add_git_add_result
+  changed_when: repo_file_add_git_add_result.rc == 0

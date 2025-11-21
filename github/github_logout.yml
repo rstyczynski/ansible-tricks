@@ -1,0 +1,20 @@
+---
+- name: "Logout: Logout from gh CLI"  # noqa: command-instead-of-module
+
+  ansible.builtin.command: gh auth logout --hostname github.com
+  register: gh_logout_result
+  changed_when: gh_logout_result.rc == 0
+  failed_when: false
+  when:
+    - gh_version.rc == 0
+    - gh_auth_result is defined
+    - gh_auth_result is changed
+
+- name: "Logout: Display logout status"
+
+  ansible.builtin.debug:
+    msg: "Logged out from GitHub CLI"
+  when:
+    - gh_logout_result is defined
+    - gh_logout_result is not skipped
+    - gh_logout_result.rc == 0
