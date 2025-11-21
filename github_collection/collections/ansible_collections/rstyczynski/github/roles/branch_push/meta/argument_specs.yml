@@ -1,0 +1,23 @@
+---
+argument_specs:
+  main:
+    short_description: Pushes current branch changes to remote repository
+    description:
+      - Pushes current branch changes to remote repository
+
+    options:
+      # INPUT PARAMETERS
+      branch_push_dest_path:
+        description: "Path to git repository"
+        type: path
+        required: true
+
+      # OUTPUT ATTRIBUTES
+      branch_push_current_branch:
+        description: "[OUTPUT] Current branch name"
+        type: dict
+        required: false
+      branch_push_push_result:
+        description: "[OUTPUT] Result of git push operation"
+        type: dict
+        required: false

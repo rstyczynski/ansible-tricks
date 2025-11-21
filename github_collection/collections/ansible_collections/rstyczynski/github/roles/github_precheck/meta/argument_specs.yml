@@ -1,0 +1,26 @@
+---
+argument_specs:
+  main:
+    short_description: Verifies system prerequisites including git installation and GitHub CLI authentication status
+    description:
+      - Checks if git is installed and displays version information
+      - Checks if GitHub CLI (gh) is installed and displays version
+      - Verifies GitHub CLI authentication status
+      - Provides warnings if prerequisites are not met
+
+    options:
+      # OUTPUT ATTRIBUTES
+      github_precheck_git_version:
+        description: "[OUTPUT] Git version information from command execution"
+        type: dict
+        required: false
+
+      github_precheck_gh_version:
+        description: "[OUTPUT] GitHub CLI version information from command execution"
+        type: dict
+        required: false
+
+      github_precheck_gh_auth_status:
+        description: "[OUTPUT] GitHub CLI authentication status check result"
+        type: dict
+        required: false

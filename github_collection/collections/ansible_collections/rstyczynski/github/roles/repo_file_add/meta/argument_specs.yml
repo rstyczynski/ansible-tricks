@@ -1,0 +1,43 @@
+---
+argument_specs:
+  main:
+    short_description: Copies file into repository and stages it for commit
+    description:
+      - Copies a file into repository and stages it for commit
+
+    options:
+      # INPUT PARAMETERS
+      repo_file_add_file_source:
+        description: "Source file path to copy from"
+        type: path
+        required: true
+      repo_file_add_file_path:
+        description: "Destination file path in repository (auto-detected from source if not provided)"
+        type: str
+        required: false
+      repo_file_add_dest_path:
+        description: "Path to git repository"
+        type: path
+        required: true
+
+      # OUTPUT ATTRIBUTES
+      repo_file_add_detected_file_path:
+        description: "[OUTPUT] Auto-detected file path from source"
+        type: str
+        required: false
+      repo_file_add_copy_result:
+        description: "[OUTPUT] Result of copying file"
+        type: dict
+        required: false
+      repo_file_add_file_stat:
+        description: "[OUTPUT] File existence check result"
+        type: dict
+        required: false
+      repo_file_add_git_status:
+        description: "[OUTPUT] Git status for the file"
+        type: dict
+        required: false
+      repo_file_add_git_add_result:
+        description: "[OUTPUT] Result of git add operation"
+        type: dict
+        required: false

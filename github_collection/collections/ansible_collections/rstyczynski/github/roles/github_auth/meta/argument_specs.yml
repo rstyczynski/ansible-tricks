@@ -1,0 +1,39 @@
+---
+argument_specs:
+  main:
+    short_description: Authenticates GitHub CLI using token from environment or .netrc
+    description:
+      - Authenticates GitHub CLI using token from environment variables or .netrc file
+
+    options:
+      # INPUT PARAMETERS
+      github_auth_gh_version:
+        description: "GitHub CLI version check result from github_precheck"
+        type: dict
+        required: true
+      github_auth_gh_auth_status:
+        description: "GitHub CLI authentication status from github_precheck"
+        type: dict
+        required: true
+
+      # OUTPUT ATTRIBUTES
+      github_auth_github_token:
+        description: "[OUTPUT] GitHub authentication token"
+        type: str
+        required: false
+      github_auth_netrc_file:
+        description: "[OUTPUT] Result of checking .netrc file existence"
+        type: dict
+        required: false
+      github_auth_netrc_token:
+        description: "[OUTPUT] Token extracted from .netrc file"
+        type: dict
+        required: false
+      github_auth_gh_auth_result:
+        description: "[OUTPUT] Result of authenticating with GitHub CLI"
+        type: dict
+        required: false
+      github_auth_gh_auth_verify:
+        description: "[OUTPUT] Result of verifying authentication"
+        type: dict
+        required: false

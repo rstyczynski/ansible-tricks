@@ -1,0 +1,31 @@
+---
+argument_specs:
+  main:
+    short_description: Switches to an existing local or remote branch
+    description:
+      - Switches to an existing local or remote branch
+
+    options:
+      # INPUT PARAMETERS
+      branch_switch_dest_path:
+        description: "Path to git repository"
+        type: path
+        required: true
+      branch_switch_switch_to_branch:
+        description: "Branch name to switch to"
+        type: str
+        required: true
+
+      # OUTPUT ATTRIBUTES
+      branch_switch_current_branch_before:
+        description: "[OUTPUT] Current branch before switch operation"
+        type: dict
+        required: false
+      branch_switch_checkout_result:
+        description: "[OUTPUT] Result of git checkout operation"
+        type: dict
+        required: false
+      branch_switch_current_branch:
+        description: "[OUTPUT] Current branch after switch"
+        type: dict
+        required: false

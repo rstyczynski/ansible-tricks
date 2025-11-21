@@ -1,0 +1,59 @@
+---
+argument_specs:
+  main:
+    short_description: Creates a new pull request using GitHub CLI with customizable title and body
+    description:
+      - Creates a new pull request using GitHub CLI with customizable title and body
+
+    options:
+      # INPUT PARAMETERS
+      pr_create_gh_version:
+        description: "GitHub CLI version check result"
+        type: dict
+        required: true
+      pr_create_gh_auth_status:
+        description: "GitHub CLI authentication status"
+        type: dict
+        required: true
+      pr_create_dest_path:
+        description: "Destination path to the git repository"
+        type: str
+        required: true
+      pr_create_base_branch:
+        description: "Base branch for PR"
+        type: str
+        required: true
+      pr_create_pr_title:
+        description: "PR title (optional)"
+        type: str
+        required: false
+      pr_create_pr_body:
+        description: "PR body/description (optional)"
+        type: str
+        required: false
+
+      # OUTPUT ATTRIBUTES
+      pr_create_current_branch:
+        description: "[OUTPUT] Current branch name"
+        type: dict
+        required: false
+      pr_create_remote_branch_check:
+        description: "[OUTPUT] Result of checking if branch is pushed"
+        type: dict
+        required: false
+      pr_create_existing_pr:
+        description: "[OUTPUT] Existing PR number if found"
+        type: dict
+        required: false
+      pr_create_final_pr_title:
+        description: "[OUTPUT] Final PR title to use"
+        type: str
+        required: false
+      pr_create_final_pr_body:
+        description: "[OUTPUT] Final PR body to use"
+        type: str
+        required: false
+      pr_create_pr_create_result:
+        description: "[OUTPUT] Result of creating PR"
+        type: dict
+        required: false

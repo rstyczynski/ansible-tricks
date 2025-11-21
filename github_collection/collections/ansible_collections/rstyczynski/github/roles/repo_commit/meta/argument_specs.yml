@@ -1,0 +1,35 @@
+---
+argument_specs:
+  main:
+    short_description: Creates git commit with specified message if changes are staged
+    description:
+      - Creates a git commit with specified message if changes are staged
+
+    options:
+      # INPUT PARAMETERS
+      repo_commit_dest_path:
+        description: "Path to git repository"
+        type: path
+        required: true
+      repo_commit_commit_message:
+        description: "Commit message text"
+        type: str
+        required: false
+      repo_commit_file_path:
+        description: "File path for auto-generated commit message"
+        type: str
+        required: false
+
+      # OUTPUT ATTRIBUTES
+      repo_commit_git_status:
+        description: "[OUTPUT] Git status before commit"
+        type: dict
+        required: false
+      repo_commit_final_message:
+        description: "[OUTPUT] Final commit message used"
+        type: str
+        required: false
+      repo_commit_commit_result:
+        description: "[OUTPUT] Result of git commit operation"
+        type: dict
+        required: false

@@ -1,0 +1,23 @@
+---
+argument_specs:
+  main:
+    short_description: Logs out from GitHub CLI and clears authentication state
+    description:
+      - Logs out from GitHub CLI and clears authentication state
+
+    options:
+      # INPUT PARAMETERS
+      github_logout_gh_version:
+        description: "GitHub CLI version check result"
+        type: dict
+        required: true
+      github_logout_gh_auth_result:
+        description: "GitHub CLI authentication result to verify logout needed"
+        type: dict
+        required: false
+
+      # OUTPUT ATTRIBUTES
+      github_logout_result:
+        description: "[OUTPUT] Result of GitHub CLI logout operation"
+        type: dict
+        required: false

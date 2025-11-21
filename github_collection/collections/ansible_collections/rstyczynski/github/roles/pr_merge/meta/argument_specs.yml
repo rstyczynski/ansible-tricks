@@ -1,0 +1,55 @@
+---
+argument_specs:
+  main:
+    short_description: Merges a pull request using specified method (merge, squash, or rebase)
+    description:
+      - Merges a pull request using specified method (merge, squash, or rebase)
+
+    options:
+      # INPUT PARAMETERS
+      pr_merge_dest_path:
+        description: "Destination path to the git repository"
+        type: str
+        required: true
+      pr_merge_pr_merge_method:
+        description: "Merge method - merge, squash, or rebase"
+        type: str
+        required: false
+
+      # OUTPUT ATTRIBUTES
+      pr_merge_current_branch:
+        description: "[OUTPUT] Current branch name"
+        type: dict
+        required: false
+      pr_merge_pr_number:
+        description: "[OUTPUT] PR number for current branch"
+        type: dict
+        required: false
+      pr_merge_pr_state:
+        description: "[OUTPUT] PR state information"
+        type: dict
+        required: false
+      pr_merge_pr_info:
+        description: "[OUTPUT] Parsed PR state information"
+        type: dict
+        required: false
+      pr_merge_pr_status_checks_for_merge:
+        description: "[OUTPUT] PR status checks for merge"
+        type: dict
+        required: false
+      pr_merge_status_checks_for_merge:
+        description: "[OUTPUT] Parsed status checks for merge"
+        type: list
+        required: false
+      pr_merge_failed_checks_for_merge:
+        description: "[OUTPUT] Failed status checks"
+        type: list
+        required: false
+      pr_merge_pending_checks_for_merge:
+        description: "[OUTPUT] Pending status checks"
+        type: list
+        required: false
+      pr_merge_pr_merge_result:
+        description: "[OUTPUT] Result of merging PR"
+        type: dict
+        required: false

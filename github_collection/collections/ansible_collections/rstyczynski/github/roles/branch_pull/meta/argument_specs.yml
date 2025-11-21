@@ -1,0 +1,23 @@
+---
+argument_specs:
+  main:
+    short_description: Pulls latest changes from remote for current branch
+    description:
+      - Pulls latest changes from remote for the current branch
+
+    options:
+      # INPUT PARAMETERS
+      branch_pull_dest_path:
+        description: "Path to git repository"
+        type: path
+        required: true
+
+      # OUTPUT ATTRIBUTES
+      branch_pull_current_branch:
+        description: "[OUTPUT] Current branch name"
+        type: dict
+        required: false
+      branch_pull_pull_result:
+        description: "[OUTPUT] Result of git pull operation"
+        type: dict
+        required: false

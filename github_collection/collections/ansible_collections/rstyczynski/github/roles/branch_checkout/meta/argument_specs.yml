@@ -1,0 +1,63 @@
+---
+argument_specs:
+  main:
+    short_description: Checks out or creates a new branch, with optional push to remote
+    description:
+      - Checks out or creates a new branch, with optional push to remote
+
+    options:
+      # INPUT PARAMETERS
+      branch_checkout_new_branch:
+        description: "Name of the branch to checkout or create"
+        type: str
+        required: true
+      branch_checkout_dest_path:
+        description: "Destination path to the git repository"
+        type: str
+        required: true
+      branch_checkout_base_branch:
+        description: "Base branch name to checkout before creating"
+        type: str
+        required: true
+      branch_checkout_push_new_branch:
+        description: "Whether to push new branch to remote"
+        type: bool
+        required: false
+
+      # OUTPUT ATTRIBUTES
+      branch_checkout_branch_check:
+        description: "[OUTPUT] Result of checking if branch exists locally"
+        type: dict
+        required: false
+      branch_checkout_remote_branch_check:
+        description: "[OUTPUT] Result of checking if branch exists remotely"
+        type: dict
+        required: false
+      branch_checkout_current_branch_before_checkout:
+        description: "[OUTPUT] Current branch before checkout"
+        type: dict
+        required: false
+      branch_checkout_checkout_result:
+        description: "[OUTPUT] Result of checking out existing branch"
+        type: dict
+        required: false
+      branch_checkout_current_branch_before_base:
+        description: "[OUTPUT] Current branch before base checkout"
+        type: dict
+        required: false
+      branch_checkout_create_branch_result:
+        description: "[OUTPUT] Result of creating new branch"
+        type: dict
+        required: false
+      branch_checkout_current_branch_before_switch:
+        description: "[OUTPUT] Current branch before switching"
+        type: dict
+        required: false
+      branch_checkout_push_branch_result:
+        description: "[OUTPUT] Result of pushing branch to remote"
+        type: dict
+        required: false
+      branch_checkout_current_branch:
+        description: "[OUTPUT] Current branch after checkout"
+        type: dict
+        required: false

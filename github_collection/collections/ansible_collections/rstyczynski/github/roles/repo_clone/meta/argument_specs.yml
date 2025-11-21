@@ -1,0 +1,51 @@
+---
+argument_specs:
+  main:
+    short_description: Clones GitHub repository or updates existing clone with branch sync
+    description:
+      - Clones a GitHub repository or updates an existing clone, handling branch synchronization
+
+    options:
+      # INPUT PARAMETERS
+      repo_clone_repo_url:
+        description: "GitHub repository URL to clone"
+        type: str
+        required: true
+      repo_clone_dest_path:
+        description: "Local destination path for repository"
+        type: path
+        required: true
+      repo_clone_base_branch:
+        description: "Base branch name (e.g., main, master)"
+        type: str
+        required: true
+      repo_clone_new_branch:
+        description: "New branch name for feature development"
+        type: str
+        required: false
+
+      # OUTPUT ATTRIBUTES
+      repo_clone_repo_stat:
+        description: "[OUTPUT] Repository directory existence check"
+        type: dict
+        required: false
+      repo_clone_clone_result:
+        description: "[OUTPUT] Result of git clone operation"
+        type: dict
+        required: false
+      repo_clone_current_branch:
+        description: "[OUTPUT] Current active branch name"
+        type: dict
+        required: false
+      repo_clone_remote_branch_check:
+        description: "[OUTPUT] Check if local branch exists on remote"
+        type: dict
+        required: false
+      repo_clone_fetch_result:
+        description: "[OUTPUT] Result of fetching updates from remote"
+        type: dict
+        required: false
+      repo_clone_pull_result:
+        description: "[OUTPUT] Result of pulling latest changes"
+        type: dict
+        required: false

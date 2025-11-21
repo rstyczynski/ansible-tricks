@@ -1,0 +1,47 @@
+---
+argument_specs:
+  main:
+    short_description: Deletes branch both locally and remotely in idempotent manner
+    description:
+      - Deletes a branch both locally and remotely in an idempotent manner
+
+    options:
+      # INPUT PARAMETERS
+      branch_delete_dest_path:
+        description: "Path to git repository"
+        type: path
+        required: true
+      branch_delete_delete_branch:
+        description: "Branch name to delete"
+        type: str
+        required: true
+      branch_delete_new_branch:
+        description: "New branch context for validation"
+        type: str
+        required: false
+      branch_delete_base_branch:
+        description: "Base branch to verify we're not deleting it"
+        type: str
+        required: true
+
+      # OUTPUT ATTRIBUTES
+      branch_delete_current_branch:
+        description: "[OUTPUT] Current branch name before deletion"
+        type: dict
+        required: false
+      branch_delete_local_branch_check:
+        description: "[OUTPUT] Check if branch exists locally"
+        type: dict
+        required: false
+      branch_delete_remote_branch_check:
+        description: "[OUTPUT] Check if branch exists on remote"
+        type: dict
+        required: false
+      branch_delete_delete_local_result:
+        description: "[OUTPUT] Result of deleting local branch"
+        type: dict
+        required: false
+      branch_delete_delete_remote_result:
+        description: "[OUTPUT] Result of deleting remote branch"
+        type: dict
+        required: false

@@ -1,0 +1,31 @@
+---
+argument_specs:
+  main:
+    short_description: Waits for PR status checks to complete with configurable retries
+    description:
+      - Waits for PR status checks to complete with configurable retries and delays
+
+    options:
+      # INPUT PARAMETERS
+      pr_status_check_pause_pr_status_check_delay:
+        description: "Seconds to wait between status check attempts"
+        type: int
+        required: true
+      pr_status_check_pause_pr_status_check_retries:
+        description: "Maximum number of retry attempts"
+        type: int
+        required: true
+      pr_status_check_pause_has_pending_checks:
+        description: "Flag indicating if pending checks exist from previous iteration"
+        type: bool
+        required: false
+      pr_status_check_pause_attempt_number:
+        description: "Current attempt number in retry loop"
+        type: int
+        required: true
+
+      # OUTPUT ATTRIBUTES
+      pr_status_check_has_pending_checks:
+        description: "[OUTPUT] Updated flag after checking status (inherited from pr_status_check)"
+        type: bool
+        required: false

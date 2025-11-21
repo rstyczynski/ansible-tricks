@@ -1,0 +1,31 @@
+---
+argument_specs:
+  main:
+    short_description: Adds comment to pull request for current branch
+    description:
+      - Adds a comment to the pull request for the current branch
+
+    options:
+      # INPUT PARAMETERS
+      pr_comment_pr_comment:
+        description: "Comment text to add to pull request"
+        type: str
+        required: true
+      pr_comment_dest_path:
+        description: "Path to git repository"
+        type: path
+        required: true
+
+      # OUTPUT ATTRIBUTES
+      pr_comment_current_branch:
+        description: "[OUTPUT] Current branch name"
+        type: dict
+        required: false
+      pr_comment_pr_number:
+        description: "[OUTPUT] Pull request number"
+        type: dict
+        required: false
+      pr_comment_comment_result:
+        description: "[OUTPUT] Result of adding comment"
+        type: dict
+        required: false
