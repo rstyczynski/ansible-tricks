@@ -30,11 +30,17 @@ fi
 # Change to the script directory
 cd "$SCRIPT_DIR"
 
+# Set ANSIBLE_COLLECTIONS_PATH to point to collections directory
+export ANSIBLE_COLLECTIONS_PATH="$SCRIPT_DIR/collections"
+
 # Remove existing dest directory if it exists
 if [ -d "$DEST_DIR" ]; then
     echo "Removing existing $DEST_DIR directory..."
     rm -rf "$DEST_DIR"
 fi
+
+# Create destination directory (antsibull-docs requires it to exist)
+mkdir -p "$DEST_DIR"
 
 # Step 1: Initialize the Sphinx documentation site
 echo "Step 1: Initializing Sphinx documentation site..."

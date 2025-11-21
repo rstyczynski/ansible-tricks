@@ -65,9 +65,9 @@ ls -la .venv
 # - Script should complete without errors
 ```
 
-**Status:** PENDING
+**Status:** PASS
 
-**Notes:** Test requires `antsibull-docs` to be installed.
+**Notes:** Test executed successfully. Script generated HTML documentation. Required fix: Added `mkdir -p "$DEST_DIR"` after removing directory, and set `ANSIBLE_COLLECTIONS_PATH` environment variable.
 
 ---
 
@@ -362,15 +362,15 @@ ls -la docs_html/build/html/index.html
 
 | Backlog Item | Total Tests | Passed | Failed | Status |
 |--------------|-------------|--------|--------|--------|
-| GHC-6        | 8           | 0      | 0      | PENDING |
+| GHC-6        | 8           | 1      | 0      | IN_PROGRESS |
 
 ## Overall Test Results
 
 **Total Tests:** 8
-**Passed:** 0
+**Passed:** 1 (Test 1: Script Execution)
 **Failed:** 0
-**Pending:** 8
-**Success Rate:** N/A (tests not yet executed)
+**Pending:** 7
+**Success Rate:** 12.5% (1/8 executed, all passed)
 
 ## Test Execution Notes
 
