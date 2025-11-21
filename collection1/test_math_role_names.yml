@@ -1,0 +1,19 @@
+---
+- name: Test Math Calculator Role
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Test 1 - Simple addition
+      ansible.builtin.include_role:
+        name: acme.tools.calc
+      vars:
+        calc_equation: "10 + 5"
+        calc_title: "Test 1 - Simple addition"
+
+    - name: Test 2 - Multiplication
+      ansible.builtin.include_role:
+        name: acme.tools.calc
+      vars:
+        calc_equation: "12 * 8"
+        calc_title: "Test 2 - Multiplication"

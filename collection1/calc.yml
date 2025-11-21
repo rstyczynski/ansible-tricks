@@ -1,0 +1,10 @@
+---
+- name: "Math calculation"
+  ansible.builtin.command:
+    cmd: python3 -c "print({{ calc_equation }})"
+  register: calc_result
+  changed_when: false
+
+- name: "Math calculation - result"
+  ansible.builtin.debug:
+    msg: "{{ calc_equation }} = {{ calc_result.stdout }}"

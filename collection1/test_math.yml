@@ -1,0 +1,29 @@
+---
+- name: Test Math Calculator Role
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Test 1 - Simple addition
+      ansible.builtin.command:
+        cmd: python3 -c "print({{ calc_equation }})"
+      register: calc_result
+      changed_when: false
+      vars:
+        calc_equation: "10 + 5"
+
+    - name: Test 1 - Display calculation result
+      ansible.builtin.debug:
+        msg: "Result: {{ calc_result.stdout }}"
+
+    - name: Test 2 - Simple addition
+      ansible.builtin.command:
+        cmd: python3 -c "print({{ calc_equation }})"
+      register: calc_result
+      changed_when: false
+      vars:
+        calc_equation: "12 * 8"
+
+    - name: Test 2 - Display calculation result
+      ansible.builtin.debug:
+        msg: "Result: {{ calc_result.stdout }}"
