@@ -6,9 +6,11 @@
 set -e
 
 COLLECTION_NAME="rstyczynski.github"
-# Place documentation in collection's docs/ directory (Ansible standard)
+# Build directory for Sphinx build system (construction directory)
+BUILD_DIR="docs_html"
+# Collection's docs directory (only final HTML product goes here)
 COLLECTION_DOCS_DIR="collections/ansible_collections/rstyczynski/github/docs"
-DEST_DIR="${COLLECTION_DOCS_DIR}/sphinx"
+COLLECTION_HTML_DIR="${COLLECTION_DOCS_DIR}/html"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "Generating HTML documentation for $COLLECTION_NAME Collection"
@@ -35,21 +37,21 @@ cd "$SCRIPT_DIR"
 # Set ANSIBLE_COLLECTIONS_PATH to point to collections directory
 export ANSIBLE_COLLECTIONS_PATH="$SCRIPT_DIR/collections"
 
-# Remove existing dest directory if it exists
-if [ -d "$DEST_DIR" ]; then
-    echo "Removing existing $DEST_DIR directory..."
-    rm -rf "$DEST_DIR"
+# Remove existing build directory if it exists
+if [ -d "$BUILD_DIR" ]; then
+    echo "Removing existing $BUILD_DIR directory..."
+    rm -rf "$BUILD_DIR"
 fi
 
-# Create destination directory (antsibull-docs requires it to exist)
-mkdir -p "$DEST_DIR"
+# Create build directory (antsibull-docs requires it to exist)
+mkdir -p "$BUILD_DIR"
 
 # Step 1: Initialize the Sphinx documentation site
 echo "Step 1: Initializing Sphinx documentation site..."
-antsibull-docs sphinx-init --use-current --dest-dir "$DEST_DIR" "$COLLECTION_NAME"
+antsibull-docs sphinx-init --use-current --dest-dir "$BUILD_DIR" "$COLLECTION_NAME"
 
-if [ ! -d "$DEST_DIR" ]; then
-    echo "❌ ERROR: Failed to create $DEST_DIR directory"
+if [ ! -d "$BUILD_DIR" ]; then
+    echo "❌ ERROR: Failed to create $BUILD_DIR directory"
     exit 1
 fi
 
@@ -79,10 +81,10 @@ echo "Virtual environment activated: $VIRTUAL_ENV"
 # Step 3: Install requirements
 echo ""
 echo "Step 3: Installing Python requirements..."
-cd "$DEST_DIR"
+cd "$BUILD_DIR"
 
 if [ ! -f "requirements.txt" ]; then
-    echo "❌ ERROR: requirements.txt not found in $DEST_DIR"
+    echo "❌ ERROR: requirements.txt not found in $BUILD_DIR"
     exit 1
 fi
 
@@ -92,27 +94,45 @@ pip install -q -r requirements.txt
 echo ""
 echo "Step 4: Building HTML documentation..."
 if [ ! -f "build.sh" ]; then
-    echo "❌ ERROR: build.sh not found in $DEST_DIR"
+    echo "❌ ERROR: build.sh not found in $BUILD_DIR"
     exit 1
 fi
 
 chmod +x build.sh
 ./build.sh
 
-# Step 5: Report success
+# Step 5: Copy HTML output to collection's docs directory
+echo ""
+echo "Step 5: Copying HTML documentation to collection's docs/ directory..."
+cd "$SCRIPT_DIR"
+
+# Remove existing HTML in collection docs directory
+if [ -d "$COLLECTION_HTML_DIR" ]; then
+    echo "Removing existing HTML documentation from collection..."
+    rm -rf "$COLLECTION_HTML_DIR"
+fi
+
+# Create collection docs directory if it doesn't exist
+mkdir -p "$COLLECTION_DOCS_DIR"
+
+# Copy only the HTML output (not build artifacts)
+echo "Copying HTML files to $COLLECTION_HTML_DIR..."
+cp -r "$BUILD_DIR/build/html" "$COLLECTION_HTML_DIR"
+
+# Step 6: Report success
 echo ""
 echo "======================================================================"
 echo "✅ SUCCESS: HTML documentation generated!"
 echo ""
-echo "Documentation location: $SCRIPT_DIR/$DEST_DIR/build/html/index.html"
-echo ""
+echo "Build directory (construction): $SCRIPT_DIR/$BUILD_DIR"
 echo "Collection docs directory: $SCRIPT_DIR/$COLLECTION_DOCS_DIR"
+echo "HTML documentation location: $SCRIPT_DIR/$COLLECTION_HTML_DIR/index.html"
 echo ""
 echo "To view the documentation:"
-echo "  open $SCRIPT_DIR/$DEST_DIR/build/html/index.html"
+echo "  open $SCRIPT_DIR/$COLLECTION_HTML_DIR/index.html"
 echo ""
 echo "Or start a simple HTTP server:"
-echo "  cd $SCRIPT_DIR/$DEST_DIR/build/html"
+echo "  cd $SCRIPT_DIR/$COLLECTION_HTML_DIR"
 echo "  python3 -m http.server 8000"
 echo "  # Then open http://localhost:8000 in your browser"
 echo ""

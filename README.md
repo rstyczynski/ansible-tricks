@@ -66,7 +66,7 @@ ansible-tricks/
 - Design: `progress/sprint_4/sprint_4_design.md`
 
 **Usage Examples:**
-See implementation documentation for complete usage examples. The script generates HTML documentation in the collection's `docs/` directory (Ansible standard) at `github_collection/collections/ansible_collections/rstyczynski/github/docs/sphinx/build/html/index.html`.
+See implementation documentation for complete usage examples. The script builds documentation in the construction directory (`docs_html/`) and copies the final HTML output to the collection's `docs/html/` directory (Ansible standard) at `github_collection/collections/ansible_collections/rstyczynski/github/docs/html/index.html`.
 
 ---
 
