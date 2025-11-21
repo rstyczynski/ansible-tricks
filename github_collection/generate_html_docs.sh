@@ -6,7 +6,9 @@
 set -e
 
 COLLECTION_NAME="rstyczynski.github"
-DEST_DIR="docs_html"
+# Place documentation in collection's docs/ directory (Ansible standard)
+COLLECTION_DOCS_DIR="collections/ansible_collections/rstyczynski/github/docs"
+DEST_DIR="${COLLECTION_DOCS_DIR}/sphinx"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "Generating HTML documentation for $COLLECTION_NAME Collection"
@@ -103,6 +105,8 @@ echo "======================================================================"
 echo "✅ SUCCESS: HTML documentation generated!"
 echo ""
 echo "Documentation location: $SCRIPT_DIR/$DEST_DIR/build/html/index.html"
+echo ""
+echo "Collection docs directory: $SCRIPT_DIR/$COLLECTION_DOCS_DIR"
 echo ""
 echo "To view the documentation:"
 echo "  open $SCRIPT_DIR/$DEST_DIR/build/html/index.html"

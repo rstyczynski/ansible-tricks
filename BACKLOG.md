@@ -65,10 +65,14 @@ Transform all existing task-sets from `github-task-sets` directory into Ansible 
 
 Having it update trigger file `1.trigger` and process `flow.yml` that should execute. In case of execution failure due to status check timeout, execute again to register success. Propose more tests to be executed.
 
-### GHC-4. GitHub Collection roles support input / output specification### 
+### GHC-4. GitHub Collection roles support input / output specification
 
 Role validates arguments and document produced attributes following `input_output_rule_spec.md` specification available in Ansible specific rules. The rules are available in RUBStrikesBack or in this project's `rules/specific/ansible` directory.
 
 ### GHC-5. GitHub Collection documentation
 
 Produce `ansible-doc` documentation for all the roles concluding this task. In case of missing description for a role - add it. You can do it as we are working with generic GitHub procedures. Use up to five sentences to describe each role. The same for arguments and output attributes.
+
+### GHC-6. GitHub Collection HTML documentation generation
+
+Generate HTML documentation site for the entire collection using `antsibull-docs` tool. The documentation should include all 16 roles with their argument specifications, descriptions, and parameter details in a browsable Sphinx-based format. Provide a script (`generate_html_docs.sh`) that automates the process of initializing the Sphinx site, installing dependencies, and building the HTML documentation. The generated documentation should be placed in the collection's `docs/` directory (Ansible standard) at `collections/ansible_collections/rstyczynski/github/docs/sphinx/build/html/index.html` and can be served locally or published to a web server. Follow the official Ansible documentation guide: <https://docs.ansible.com/projects/ansible/latest/dev_guide/developing_collections_documenting.html>
