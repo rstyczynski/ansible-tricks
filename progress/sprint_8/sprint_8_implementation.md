@@ -22,7 +22,7 @@ Uses Ara's recommended callback setup from the first-page docs; no custom module
 
 | Artifact | Purpose | Status | Tested |
 |----------|---------|--------|--------|
-| github_collection/ARA_USAGE.md | Quickstart instructions to run flow with Ara callback | Complete | No |
+| progress/sprint_8/sprint_8_ara_usage.md | Quickstart instructions to run flow with Ara callback | Complete | No |
 
 ### Testing Results
 No Ara server available here; follow the commands in ARA_USAGE.md to validate in an environment with Ara.
