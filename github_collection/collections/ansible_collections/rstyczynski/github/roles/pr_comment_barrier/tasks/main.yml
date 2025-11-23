@@ -49,7 +49,7 @@
           )
       )
       | selectattr('body', 'defined')
-      | selectattr('body', 'regex_search', '(' + (pr_comment_barrier_patterns | join(')|(')) + ')')
+      | selectattr('body', 'search', '(' + (pr_comment_barrier_patterns | join(')|(')) + ')')
       | list
     ) | length > 0
 
@@ -69,7 +69,7 @@
       {{ (
            pr_comment_barrier_comments
            | selectattr('body', 'defined')
-           | selectattr('body', 'regex_search', '(' + (pr_comment_barrier_patterns | join(')|(')) + ')')
+           | selectattr('body', 'search', '(' + (pr_comment_barrier_patterns | join(')|(')) + ')')
            | list
          ) | first | default({}) }}
 
