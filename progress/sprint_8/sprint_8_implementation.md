@@ -82,6 +82,27 @@ Expected behavior: play registers the run via handler (`ara_register_run`) and e
 - Tokens are marked `no_log` and not returned in facts.  
 - Adjust `ara_run_name`, `ara_default_metadata`, and `ara_run_id` as needed; if `ara_run_id` is empty it is generated automatically.
 
+#### Running an Ara server (options)
+
+**Container (recommended quick start):**
+```bash
+docker run --name ara-api --detach -p 8000:8000 \
+  docker.io/recordsansible/ara-api:latest
+# or with podman:
+# podman run --name ara-api --detach -p 8000:8000 quay.io/recordsansible/ara-api:latest
+```
+Then set `ara_api_base_url=http://127.0.0.1:8000` when running `flow_ara.yml`.  
+
+**Python install (local server):**
+```bash
+python3 -m pip install --user "ara[server]"
+ara-manage migrate
+ara-manage runserver 0.0.0.0:8000
+```
+Run the play with `ara_api_base_url=http://127.0.0.1:8000`.  
+
+**Auth:** If your Ara server requires a token, pass it with `-e "ara_api_token=YOUR_TOKEN"`. Set `ara_verify_ssl=false` for local/self-signed endpoints.
+
 ---
 
 ## Sprint Implementation Summary

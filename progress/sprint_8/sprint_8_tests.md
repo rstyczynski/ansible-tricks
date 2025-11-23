@@ -7,6 +7,13 @@
 - Network access to chosen host/port (e.g., localhost:5000).  
 - `ansible-playbook` available.  
 - `github_collection/flow.yml` present.
+- Optional: Ara server for end-to-end run  
+```bash
+docker run --name ara-api --detach -p 8000:8000 docker.io/recordsansible/ara-api:latest
+# then run:
+# cd github_collection
+# ansible-playbook flow_ara.yml -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_verify_ssl=false"
+```
 
 ## GHC-13 Tests
 
