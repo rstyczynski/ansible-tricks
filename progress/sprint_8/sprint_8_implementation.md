@@ -6,7 +6,7 @@
 **Backlog Items:**  
 - GHC-13: failed  
 
-Implemented Ara integration via handlers in `github_collection/flow_ara.yml` (dedicated Ara-enabled flow). `flow.yml` remains unchanged for non-Ara use. Added opt-in configuration variables, run-id generation, handler-based registration/event emission, and success/failure notifications. Integration defaults to disabled in the Ara flow to avoid breaking existing flows. Latest test run failed due to gh authentication failure (no Ara POSTs executed).
+Implemented Ara integration via the Ara callback plugin in `github_collection/flow_ara.yml`. `flow.yml` remains unchanged for non-Ara use. When `ara_enabled=true`, the play sets `ANSIBLE_CALLBACK_PLUGINS` using `python3 -m ara.setup.callback_plugins` and exports `ARA_API_CLIENT=http`, `ARA_API_SERVER`, and optional `ARA_API_INSECURE` (when SSL verify disabled). Latest test run failed due to gh authentication failure in this environment (no Ara records created).
 
 ## GHC-13. Ara integration
 
@@ -14,45 +14,42 @@ Status: failed
 
 ### Implementation Summary
 
-- Added Ara configuration vars (enable flag, base URL, token, SSL verify, strictness, run id, metadata, run name).  
-- Generate `ara_run_id` when enabled using an internal password lookup to avoid external commands.  
-- Queue and flush Ara run registration early; notify Ara on workflow success/failure with event payloads.  
-- Added handlers to POST to Ara REST endpoints (`/api/v1/playbooks/`, `/api/v1/results/`) with retries/backoff and optional token.  
-- Token handling uses `no_log`; strictness controlled via `ara_fail_on_error`.  
-- Integration is additive and disabled by default; when enabled, tasks set `ara_event_payload` and notify handlers.
+- Added Ara configuration vars (enable flag, base URL, verify flag).  
+- When enabled, resolved Ara callback plugins path via `python3 -m ara.setup.callback_plugins` and exported Ara env vars for the play.  
+- Uses Ara callback to emit playbook/task data automatically (no custom handlers).  
+- Integration is opt-in; default `ara_enabled=true` in flow_ara.yml, `flow.yml` unchanged.
 
 ### Main Features
 
-- Opt-in Ara telemetry for flow execution.  
-- Run identifier management and metadata support.  
-- Handler-based POSTs with retry/backoff and configurable failure behavior.  
-- Success/failure event emission.
+- Opt-in Ara telemetry using official callback plugin.  
+- Automatic registration of play/task results to Ara API when enabled.  
+- Uses environment variables for API client/server and SSL verification.
 
 ### Design Compliance
 
-Implemented according to approved handler-based design referencing Ara docs; uses handlers with notify/flush, REST endpoints, token option, and opt-in gating.
+Implemented according to Ara documentation using the official callback plugin (env-based configuration to `ARA_API_SERVER`/callback plugins path).
 
 ### Code Artifacts
 
 | Artifact | Purpose | Status | Tested |
 |----------|---------|--------|--------|
-| github_collection/flow_ara.yml | Ara vars, run-id generation, event notifications, handlers for Ara REST | Complete | Not verified (flow aborted at gh auth) |
+| github_collection/flow_ara.yml | Ara env setup (callback plugins path, ARA_API_*), standard flow steps | Complete | Not verified (flow aborted at gh auth) |
 
 ### Testing Results
 
 **Functional Tests:** 0/2 passed (gh auth failure stopped flow)  
 **Edge Cases:** 0/1 passed  
-**Overall:** FAIL (gh CLI authentication failed before Ara POSTs)
+**Overall:** FAIL (gh CLI authentication failed; Ara callback not exercised)
 
 ### Known Issues
 
-- gh CLI authentication failed despite netrc token; flow aborted before any Ara POSTs. Requires valid GitHub authentication (gh auth login) to rerun tests. Local Ara server via podman is available at http://127.0.0.1:8000.
+- gh CLI authentication failed despite provided token; flow aborted before Ara callback could emit records. Requires valid GitHub authentication (gh auth login) to rerun tests. Local Ara server via podman is available at http://127.0.0.1:8000.
 
 ### User Documentation
 
 #### Overview
 
-Flow can emit Ara events via handlers to an Ara API server when `ara_enabled` is true.
+Flow can emit Ara events via the Ara callback plugin to an Ara API server when `ara_enabled` is true.
 
 #### Prerequisites
 
@@ -62,19 +59,13 @@ Flow can emit Ara events via handlers to an Ara API server when `ara_enabled` is
 
 #### Usage
 
-**Enable Ara telemetry with custom endpoint (Ara flow):**
+**Enable Ara telemetry with custom endpoint (Ara flow, callback-based):**
 ```bash
 ansible-playbook github_collection/flow_ara.yml \
-  -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_api_token=YOUR_TOKEN ara_verify_ssl=false"
+  -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_verify_ssl=false"
 ```
 
-**Enable with mock server and strict failure on errors:**
-```bash
-ansible-playbook github_collection/flow_ara.yml \
-  -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:5000 ara_fail_on_error=true ara_verify_ssl=false"
-```
-
-Expected behavior: play registers the run via handler (`ara_register_run`) and emits events (`ara_send_event`) for start/success/failure; if `ara_fail_on_error` is true, POST failures fail the play.
+Expected behavior: Ara callback registers play and task results to the API at `ara_api_base_url`; `ARA_API_INSECURE` is set when `ara_verify_ssl=false`.
 
 #### Special Notes
 
