@@ -30,16 +30,17 @@ ansible-playbook flow.yml -e "ara_enabled=false"
 
 ---
 
-### Test 2: Ara callback posts to real Ara server
+### Test 2: Ara handler posts to real Ara server
 
-**Purpose:** Validate Ara callback records play/tasks to Ara API.  
-**Expected Outcome:** Ara server receives records via callback; workflow succeeds.  
+**Purpose:** Validate registration and event POSTs reach Ara API.  
+**Expected Outcome:** Ara server receives POSTs to `/api/v1/playbooks/` and `/api/v1/results/` with expected payloads; workflow succeeds.  
 
 **Test Sequence:**
 ```bash
 cd github_collection
+export ARA_TOKEN="REPLACE_WITH_TOKEN"
 ansible-playbook flow_ara.yml \
-  -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_verify_ssl=false"
+  -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_api_token=${ARA_TOKEN} ara_verify_ssl=false"
 ```
 
 **Status:** FAIL  
@@ -47,16 +48,17 @@ ansible-playbook flow_ara.yml \
 
 ---
 
-### Test 3: Ara callback with SSL verify toggle
+### Test 3: Strict mode with real Ara server
 
-**Purpose:** Confirm callback works with SSL verify disabled flag.  
-**Expected Outcome:** Play succeeds with `ara_verify_ssl=false` against real server.  
+**Purpose:** Confirm strict mode succeeds when Ara returns 2xx; would fail on auth errors.  
+**Expected Outcome:** Play succeeds with `ara_fail_on_error=true` against real server (valid token).  
 
 **Test Sequence:**
 ```bash
 cd github_collection
+export ARA_TOKEN="REPLACE_WITH_TOKEN"
 ansible-playbook flow_ara.yml \
-  -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_verify_ssl=false"
+  -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_api_token=${ARA_TOKEN} ara_fail_on_error=true ara_verify_ssl=false"
 ```
 
 **Status:** FAIL  
