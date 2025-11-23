@@ -63,3 +63,10 @@ Status: Done
 Mode: YOLO
 
 Backlog Items: GHC-13
+
+## Sprint 9 - Ara API access
+
+Status: Done
+Mode: YOLO
+
+Backlog Items: GHC-14

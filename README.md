@@ -92,6 +92,54 @@ chmod 600 ~/.netrc
 
 ## Recent Updates
 
+### Sprint 9 - Ara API Access
+
+**Status:** implemented
+
+**Backlog Items Implemented:**
+- **GHC-14**: Access ara records from remote host - tested ✅
+
+**Key Features Added:**
+- Comprehensive curl query examples for Ara REST API (8 use cases)
+- Remote access documentation for querying playbook execution records
+- Complete tracing examples (playbooks → plays → tasks → results)
+- Authentication patterns (unauthenticated, Basic Auth, Bearer Token)
+- jq integration examples for JSON processing
+
+**Documentation:**
+- Implementation: `progress/sprint_9/sprint_9_implementation.md`
+- Tests: `progress/sprint_9/sprint_9_tests.md` (11/11 tests PASSED)
+- Design: `progress/sprint_9/sprint_9_design.md`
+- Usage: `ara/README.md` (API Queries by Use Case section)
+- Backlog traceability: `progress/backlog/GHC-14/`
+
+**Usage Examples:**
+See `ara/README.md` for complete curl query examples and operator use cases.
+
+---
+
+### Sprint 8 - Ara Integration
+
+**Status:** implemented
+
+**Backlog Items Implemented:**
+- **GHC-14**: Playbook run identified by UUID - tested ✅
+
+**Key Features Added:**
+- Ara integration using environment variables (no custom role)
+- Ara server setup via Podman container
+- Ansible callback plugin configuration for playbook recording
+- Comprehensive setup documentation
+
+**Documentation:**
+- Implementation: `progress/sprint_8/sprint_8_implementation.md`
+- Tests: `progress/sprint_8/sprint_8_tests.md` (5/5 tests PASSED)
+- Design: `progress/sprint_8/sprint_8_design.md`
+- Usage: `ara/README.md` (Install & Configure sections)
+- Backlog traceability: `progress/backlog/GHC-13/`
+
+---
+
 ### Sprint 7 - Comment barrier role
 
 **Status:** implemented_partially
