@@ -71,20 +71,6 @@ Expected behavior: Ara callback registers play and task results to the API at `a
 - Integration is disabled by default; set `ara_enabled=true` to activate.  
 - Tokens are marked `no_log` and not returned in facts.  
 - Adjust `ara_run_name`, `ara_default_metadata`, and `ara_run_id` as needed; if `ara_run_id` is empty it is generated automatically.
-- Use a virtual environment for Ara/Ansible so the callback is available and isolated:
-  ```bash
-  cd github_collection
-  python3 -m venv .venv
-  source .venv/bin/activate
-  pip install --upgrade pip
-  pip install "ara[server]" ansible
-  ANSIBLE_CALLBACK_PLUGINS="$(python3 -m ara.setup.callback_plugins)" \
-    ARA_API_CLIENT=http \
-    ARA_API_SERVER=http://127.0.0.1:8000 \
-    ARA_API_INSECURE=1 \
-    ansible-playbook flow_ara.yml -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_verify_ssl=false"
-  ```
-  Adjust `ARA_API_SERVER` to your endpoint and drop `ARA_API_INSECURE` when using TLS.
 
 #### Running an Ara server (options)
 

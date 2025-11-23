@@ -11,14 +11,6 @@
 ```bash
 podman run --name ara-api --detach -p 8000:8000 quay.io/recordsansible/ara-api:latest
 ```
-- Use a Python virtual environment for Ara/Ansible (callback availability):
-```bash
-cd github_collection
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install "ara[server]" ansible
-```
 
 ## GHC-13 Tests
 
