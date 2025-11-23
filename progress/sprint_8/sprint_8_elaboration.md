@@ -2,14 +2,14 @@
 
 ## Design Overview
 
-Designed an opt-in Ara integration using the official Ara callback plugin (no custom handlers): `flow_ara.yml` resolves callback path via `python3 -m ara.setup.callback_plugins` and exports `ARA_API_CLIENT=http`, `ARA_API_SERVER`, and `ARA_API_INSECURE` (when SSL verify disabled). Integration is feature-flagged to avoid breaking existing flows when disabled.
+Designed an opt-in Ara integration via shared handlers (no new role): handlers register the play/run and emit task-level events to Ara over REST using `ansible.builtin.uri`, with optional token auth, retry/backoff, and provided or generated run identifier. Integration is feature-flagged to avoid breaking existing flows when disabled.
 
 ## Key Design Decisions
 
-1. Use official Ara callback plugin (https://ara.readthedocs.io/en/latest/ansible-plugins-and-use-cases.html#ara-default-callback-recording-playbooks-from-ansible) configured via env vars; no custom handlers.  
-2. Resolve callback path via `python3 -m ara.setup.callback_plugins`; set `ARA_API_CLIENT=http`, `ARA_API_SERVER`, `ARA_API_INSECURE` when SSL verify disabled.  
-3. Keep `flow.yml` unchanged; use `flow_ara.yml` when Ara telemetry is desired.  
-4. Provide early exit via `ara_enabled` flag.  
+1. Use shared handlers triggered via `notify`/`flush_handlers` (per Ara handler guidance: https://ara.readthedocs.io/en/latest/ansible-plugins-and-use-cases.html#ara-default-callback-recording-playbooks-from-ansible) rather than a new role.  
+2. Use `ansible.builtin.uri` with optional `Authorization: Bearer <token>` header; SSL verification configurable.  
+3. Generate `ara_run_id` when absent; reuse for all events to correlate play and tasks.  
+4. Provide early exit when `ara_enabled` is false; failures default to warnings, with option to make strict via `ara_fail_on_error`.  
 
 ## Feasibility Confirmation
 

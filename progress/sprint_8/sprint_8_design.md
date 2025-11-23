@@ -27,16 +27,18 @@ Ara exposes REST endpoints `/api/v1/playbooks/` (play/run registration) and `/ap
 ### Design Overview
 
 **Architecture:**  
-- Use Ara callback plugin (per https://ara.readthedocs.io/en/latest/ansible-plugins-and-use-cases.html#ara-default-callback-recording-playbooks-from-ansible) enabled by exporting `ANSIBLE_CALLBACK_PLUGINS` from `python3 -m ara.setup.callback_plugins`.  
-- Configure callback with `ARA_API_CLIENT=http`, `ARA_API_SERVER`, and `ARA_API_INSECURE` (when SSL verify disabled).  
-- `flow_ara.yml` sets these env vars when `ara_enabled=true`; `flow.yml` remains unchanged.  
-- Callback handles registration and task/result emission automatically; no custom handlers required.  
+- Add shared Ara handlers (play-level) referenced from `flow.yml`.  
+- Handlers: `ara_register_run` (register run/play) and `ara_send_event` (task-level event).  
+- Tasks set `ara_event_payload` facts and `notify` handlers; `meta: flush_handlers` used at checkpoints to send promptly.  
+- Run identifier determined once per play (provided or generated UUID) and reused by handlers.  
+- Handler/callback approach aligns with Ara guidance on callbacks at https://ara.readthedocs.io/en/latest/ansible-plugins-and-use-cases.html#ara-default-callback-recording-playbooks-from-ansible.  
 
 **Key Components:**  
-1. **Callback plugin path resolution:** `python3 -m ara.setup.callback_plugins` to set `ANSIBLE_CALLBACK_PLUGINS`.  
-2. **Configuration Vars:** `ara_enabled`, `ara_api_base_url`, `ara_verify_ssl` (drives `ARA_API_INSECURE`), `ara_api_client` (http).  
-3. **Environment export:** `ARA_API_CLIENT`, `ARA_API_SERVER`, optional `ARA_API_INSECURE` when `ara_verify_ssl=false`.  
-4. **Usage Pattern:** Run `flow_ara.yml` with `ara_enabled=true`; callback records play/tasks to Ara automatically.  
+1. **Run Context Fact:** `ara_run_id` generated via `community.general.uuid` (or Jinja fallback) if not provided.  
+2. **Handler `ara_register_run`:** POST to `/api/v1/playbooks/` with identifier/metadata; gated by `ara_enabled` (per Ara run registration workflow in docs).  
+3. **Handler `ara_send_event`:** POST to `/api/v1/results/` using `ara_event_payload` (fields: status, task, host, duration, details) with retries/backoff (aligned to Ara result submission in docs).  
+4. **Configuration Vars:** `ara_enabled`, `ara_api_base_url`, `ara_api_token` (optional), `ara_verify_ssl` (default true), `ara_run_id`, `ara_default_metadata` (dict), `ara_fail_on_error` (bool).  
+5. **Usage Pattern:** Tasks set `ara_event_payload` fact then `notify: ara_send_event`; early task `notify: ara_register_run`; handlers run on `meta: flush_handlers` or play end.  
 
 **Data Flow:**  
 Play/role sets Ara vars → establish `ara_run_id` → tasks populate `ara_event_payload` and notify → handlers POST to Ara REST → Ara records events.
