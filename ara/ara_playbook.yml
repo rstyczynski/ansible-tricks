@@ -1,0 +1,22 @@
+- name: Test playbook
+  hosts: localhost
+  
+  tasks:
+    - name: Get the currently running playbook
+      ara_playbook:
+      register: query
+
+    - name: Retrieve playbook id
+      set_fact:
+        playbook_id: "{{ query.playbook.id | string }}"
+
+    # With the playbook id we can create a link to the playbook report
+    - name: Recover base url from ara
+      set_fact:
+        api_base_url: "{{ lookup('ara_api', '/api/') }}"
+
+    - name: Print link to playbook report
+      vars:
+        ui_base_url: "{{ api_base_url.api[0] | regex_replace('/api/v1/', '') }}"
+      debug:
+        msg: "{{ ui_base_url }}/playbooks/{{ playbook_id }}.html"

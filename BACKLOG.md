@@ -172,3 +172,8 @@ Test case must cover:
 2. controller playbook exit after invoke of the task
 3. controller playbook return with host and job_id to check result. finish cleanly when task is done
 4. managed host crashed and lost the process. controller handles it.
+
+### GHC-14. Access ara records from remote host
+
+Operator uses `curl` to get data from Ara database. Cooperate with developments from GHC-13 to trace playbook run via `curl`. Operator knows identifier used to run the play. Keep all in ./ara directory
+

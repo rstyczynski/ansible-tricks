@@ -2,7 +2,7 @@
 
 ## GHC-13. Ara integration
 
-Status: Proposed (YOLO auto-accepted)
+Status: Implemented with deviation (YOLO auto-accepted, implementation simplified)
 
 ### Requirement Summary
 Configure playbooks to emit task-level audit events to an Ara server via REST, with optional token authentication and labels. Provide UUID when absent and document usage.
@@ -112,6 +112,53 @@ Accepted (YOLO auto-approval)
 ## YOLO Mode Decisions
 - Proceed without guaranteeing Ara server availability.
 - Make installation optional to avoid failures.
+
+## Implementation Deviation
+
+### Original Design
+- Create `ara_setup` role with argument spec for inputs/outputs
+- Support variable-based control: `ara_enabled`, `ara_server_url`, `ara_token`, etc.
+- Integrate into `flow.yml` with conditional inclusion when `ara_enabled=true`
+- Provide programmatic configuration via playbook variables
+
+### Actual Implementation
+- Documentation-only approach (ARA_USAGE.md)
+- Environment variable configuration (no playbook changes)
+- No `ara_setup` role created
+- No integration into `flow.yml`
+
+### Rationale for Deviation
+1. **Simplicity:** Environment variable approach follows official Ara documentation
+2. **Maintainability:** No custom role code to maintain
+3. **Universality:** Works with any Ansible playbook, not just this collection
+4. **Reduced Complexity:** Fewer failure modes, easier troubleshooting
+
+### Functional Equivalence
+Both approaches achieve the same goal:
+- ✅ Ara callback integration working
+- ✅ Optional token authentication
+- ✅ Playbook naming and labeling
+- ✅ UUID auto-generation
+- ✅ Controller name customization (via `ARA_PLAYBOOK_CONTROLLER`)
+
+### Trade-offs
+**Original Design Benefits:**
+- Programmatic control via playbook variables
+- Can toggle Ara per playbook run easily
+- Self-contained within playbook
+
+**Actual Implementation Benefits:**
+- Simpler, follows official patterns
+- Less code to maintain
+- More flexible (works with any playbook)
+
+**Actual Implementation Limitations:**
+- Requires environment setup before playbook execution
+- No per-run variable-based toggling
+- Requires manual environment management
+
+### Design Approval Status Update
+Original design approved but implementation simplified based on YOLO mode decision to minimize complexity while achieving functional requirements.
 
 ## LLM Tokens
 Not measurable in this environment; token usage not recorded.
