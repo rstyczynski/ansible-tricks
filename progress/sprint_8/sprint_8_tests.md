@@ -3,16 +3,13 @@
 ## Test Environment Setup
 
 ### Prerequisites
-- Python 3 available to run a simple mock HTTP server (for Ara endpoint simulation).  
-- Network access to chosen host/port (e.g., localhost:5000).  
+- Network access to a real Ara API server (e.g., http://127.0.0.1:8000).  
+- Ara API token if required by the server.  
 - `ansible-playbook` available.  
-- `github_collection/flow.yml` present.
-- Optional: Ara server for end-to-end run  
+- `github_collection/flow.yml` and `flow_ara.yml` present.  
+- If you need a local server, start with podman:  
 ```bash
-docker run --name ara-api --detach -p 8000:8000 docker.io/recordsansible/ara-api:latest
-# then run:
-# cd github_collection
-# ansible-playbook flow_ara.yml -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_verify_ssl=false"
+podman run --name ara-api --detach -p 8000:8000 quay.io/recordsansible/ara-api:latest
 ```
 
 ## GHC-13 Tests

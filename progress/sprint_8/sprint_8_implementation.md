@@ -84,12 +84,10 @@ Expected behavior: play registers the run via handler (`ara_register_run`) and e
 
 #### Running an Ara server (options)
 
-**Container (recommended quick start):**
+**Container (podman quick start):**
 ```bash
-docker run --name ara-api --detach -p 8000:8000 \
-  docker.io/recordsansible/ara-api:latest
-# or with podman:
-# podman run --name ara-api --detach -p 8000:8000 quay.io/recordsansible/ara-api:latest
+podman run --name ara-api --detach -p 8000:8000 \
+  quay.io/recordsansible/ara-api:latest
 ```
 Then set `ara_api_base_url=http://127.0.0.1:8000` when running `flow_ara.yml`.  
 
