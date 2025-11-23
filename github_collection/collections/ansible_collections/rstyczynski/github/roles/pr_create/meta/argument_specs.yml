@@ -7,14 +7,6 @@ argument_specs:
 
     options:
       # INPUT PARAMETERS
-      pr_create_gh_version:
-        description: "GitHub CLI version check result"
-        type: dict
-        required: true
-      pr_create_gh_auth_status:
-        description: "GitHub CLI authentication status"
-        type: dict
-        required: true
       pr_create_dest_path:
         description: "Destination path to the git repository"
         type: str

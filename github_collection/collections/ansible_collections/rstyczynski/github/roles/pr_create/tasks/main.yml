@@ -1,8 +1,6 @@
 # INPUT VARIABLES TABLE
 # | name                      | type   | description                                 |
 # |---------------------------|--------|---------------------------------------------|
-# | pr_create_gh_version       | dict   | GitHub CLI version check result             |
-# | pr_create_gh_auth_status  | dict   | GitHub CLI authentication status             |
 # | pr_create_dest_path       | string | Destination path to the git repository      |
 # | pr_create_base_branch     | string | Base branch for PR                          |
 # | pr_create_pr_title        | string | PR title (optional)                          |
@@ -22,17 +20,8 @@
   ansible.builtin.validate_argument_spec:
     argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
-- name: "PR Create: Fail if gh CLI is not installed"
-
-  ansible.builtin.fail:
-    msg: "GitHub CLI (gh) is not installed. Please install it first: https://cli.github.com/"
-  when: pr_create_gh_version.rc != 0
-
-- name: "PR Create: Fail if gh CLI is not authenticated"
-
-  ansible.builtin.fail:
-    msg: "GitHub CLI is not authenticated. Please run: gh auth login"
-  when: pr_create_gh_version.rc == 0 and pr_create_gh_auth_status.rc != 0
+# Precheck already verified gh CLI availability
+# gh CLI will provide its own error if not authenticated
 
 - name: "PR Create: Get current branch name"  # noqa: command-instead-of-module
 

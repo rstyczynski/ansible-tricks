@@ -7,14 +7,6 @@ argument_specs:
 
     options:
       # INPUT PARAMETERS
-      pr_status_check_gh_version:
-        description: "GitHub CLI version check result"
-        type: dict
-        required: true
-      pr_status_check_gh_auth_status:
-        description: "GitHub CLI authentication status"
-        type: dict
-        required: true
       pr_status_check_dest_path:
         description: "Path to git repository"
         type: path

@@ -107,8 +107,6 @@
           ansible.builtin.include_role:
             name: rstyczynski.github.pr_create
           vars:
-            pr_create_gh_version: "{{ github_precheck_gh_version }}"
-            pr_create_gh_auth_status: "{{ github_precheck_gh_auth_status }}"
             pr_create_dest_path: "{{ dest_path }}"
             pr_create_base_branch: "{{ base_branch }}"
             pr_create_pr_title: "{{ pr_title }}"
@@ -116,8 +114,6 @@
 
         - name: Set variables for PR status check
           ansible.builtin.set_fact:
-            pr_status_check_gh_version: "{{ github_precheck_gh_version }}"
-            pr_status_check_gh_auth_status: "{{ github_precheck_gh_auth_status }}"
             pr_status_check_dest_path: "{{ dest_path }}"
 
         - name: Check PR status with retry

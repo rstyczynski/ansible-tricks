@@ -1,8 +1,6 @@
 # INPUT VARIABLES TABLE
 # | name                      | type   | description                                 |
 # |---------------------------|--------|---------------------------------------------|
-# | pr_status_check_gh_version| dict   | GitHub CLI version check result             |
-# | pr_status_check_gh_auth_status| dict | GitHub CLI authentication status             |
 # | pr_status_check_dest_path| string | Destination path to the git repository      |
 #
 # OUTPUT VARIABLES TABLE
@@ -22,17 +20,8 @@
   ansible.builtin.validate_argument_spec:
     argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
-- name: "PR Status: Fail if gh CLI is not installed"
-
-  ansible.builtin.fail:
-    msg: "GitHub CLI (gh) is not installed. Please install it first: https://cli.github.com/"
-  when: pr_status_check_gh_version.rc != 0
-
-- name: "PR Status: Fail if gh CLI is not authenticated"
-
-  ansible.builtin.fail:
-    msg: "GitHub CLI is not authenticated. Please run: gh auth login"
-  when: pr_status_check_gh_version.rc == 0 and pr_status_check_gh_auth_status.rc != 0
+# Precheck already verified gh CLI availability
+# gh CLI will provide its own error if not authenticated
 
 - name: "PR Status: Get current branch name"  # noqa: command-instead-of-module
 
