@@ -42,8 +42,8 @@
 **Validated:** 3
 **Issues Found:** 0
 
-### README Update
-- No README changes required for planned work (none made)
+### README/Doc Update
+- Added `github_collection/ARA_USAGE.md` with Ara callback quickstart; README unchanged.
 
 ### Backlog Traceability
 - GHC-13 directory pending creation after implementation
@@ -55,8 +55,8 @@
 **Areas for Improvement:** Implement role and run tests.
 
 ## Recommendations
-- Implement `ara_setup` role and update flow behind `ara_enabled`.
-- Execute planned tests against an Ara server and update results/status.
+- Follow `ARA_USAGE.md` to enable Ara callback and run flow, then record results in tests doc.
+- If desired, extend flow with environment exports once verified.
 
 ## YOLO Mode Decisions
 - Accepted partial documentation with pending implementation/tests due to constraints.

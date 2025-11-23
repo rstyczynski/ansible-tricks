@@ -24,6 +24,8 @@ ansible-playbook -i localhost, flow.yml \
 ```
 **Status:** PENDING
 
+Reference: follow `ARA_USAGE.md` to export callback env vars before running.
+
 ### Test 2: Missing server URL when enabled
 **Purpose:** Ensure role fails when required URL absent.
 **Expected Outcome:** Task fails with clear message.
