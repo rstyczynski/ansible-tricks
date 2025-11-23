@@ -48,6 +48,11 @@ Configure playbooks to emit task-level audit events to an Ara server via REST, w
 - `python3 -m ara.setup.callback_plugins` to obtain callback path.
 - `python3 -m pip install --user ara ansible` (optional, behind flag).
 
+**Ara Identification:**
+- Set `ARA_PLAYBOOK_NAME` to tag runs (e.g., `collection-flow-ghc13`).
+- Optionally set `ARA_PLAYBOOK_UUID` if you need a specific identifier; otherwise Ara generates one.
+- Set `ARA_PLAYBOOK_LABELS` (comma-separated) for sprint/backlog tags (e.g., `sprint-8,GHC-13`).
+
 **Error Handling:**
 - Fail if `ara_enabled` and server URL missing.
 - Warn (not fail) if install flag true but pip fails when `ara_install_optional` true.

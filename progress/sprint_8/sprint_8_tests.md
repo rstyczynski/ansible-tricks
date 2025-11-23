@@ -26,6 +26,14 @@ ansible-playbook -i localhost, flow.yml \
 
 Reference: follow `ARA_USAGE.md` to export callback env vars before running.
 
+**Identification:** include env vars when exporting callbacks, e.g.:
+```bash
+export ARA_PLAYBOOK_NAME="collection-flow-ghc13"
+export ARA_PLAYBOOK_LABELS="sprint-8,GHC-13"
+# optional explicit UUID
+# export ARA_PLAYBOOK_UUID="<your-uuid>"
+```
+
 ### Test 2: Missing server URL when enabled
 **Purpose:** Ensure role fails when required URL absent.
 **Expected Outcome:** Task fails with clear message.
