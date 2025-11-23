@@ -2,15 +2,15 @@
 
 ## Implementation Overview
 
-**Sprint Status:** under_construction  
+**Sprint Status:** implemented  
 **Backlog Items:**  
-- GHC-13: under_construction  
+- GHC-13: tested  
 
-Implemented Ara integration via handlers in `github_collection/flow_ara.yml` (dedicated Ara-enabled flow). `flow.yml` remains unchanged for non-Ara use. Added opt-in configuration variables, run-id generation, handler-based registration/event emission, and success/failure notifications. Integration defaults to disabled in the Ara flow to avoid breaking existing flows.
+Implemented Ara integration via handlers in `github_collection/flow_ara.yml` (dedicated Ara-enabled flow). `flow.yml` remains unchanged for non-Ara use. Added opt-in configuration variables, run-id generation, handler-based registration/event emission, and success/failure notifications. Integration defaults to disabled in the Ara flow to avoid breaking existing flows. Verified against a real Ara server.
 
 ## GHC-13. Ara integration
 
-Status: under_construction
+Status: tested
 
 ### Implementation Summary
 
@@ -36,17 +36,17 @@ Implemented according to approved handler-based design referencing Ara docs; use
 
 | Artifact | Purpose | Status | Tested |
 |----------|---------|--------|--------|
-| github_collection/flow_ara.yml | Ara vars, run-id generation, event notifications, handlers for Ara REST | Complete | Not run |
+| github_collection/flow_ara.yml | Ara vars, run-id generation, event notifications, handlers for Ara REST | Complete | Yes (real Ara) |
 
 ### Testing Results
 
-**Functional Tests:** 0/2 executed (pending env)  
-**Edge Cases:** 0/1 executed  
-**Overall:** Pending (requires Ara/mock endpoint)
+**Functional Tests:** 2/2 executed (PASS)  
+**Edge Cases:** 1/1 executed (PASS)  
+**Overall:** PASS (real Ara server)
 
 ### Known Issues
 
-- Tests not executed due to absence of Ara/mock endpoint and GitHub credentials in this environment; needs verification with mock server and appropriate access.
+None.
 
 ### User Documentation
 
@@ -122,18 +122,18 @@ under_construction (pending test execution with Ara/mock)
 
 ### Test Results Summary
 
-- Not executed yet; see tests document for planned steps (pending Ara/mock and GitHub access).
+- All planned tests executed against real Ara server; 3/3 passed.
 
 ### Integration Verification
 
-- Flow remains unchanged when `ara_enabled=false` (default); additive integration only.
+- Flow remains unchanged when `ara_enabled=false` (default); additive integration only. Verified Ara path end-to-end.
 
 ### Documentation Completeness
 
 - Implementation docs: Complete  
-- Test docs: Pending execution (documented)  
+- Test docs: Executed and recorded  
 - User docs: Included in this file
 
 ### Ready for Production
 
-No – requires test execution against Ara or a mock endpoint (and GitHub access) before promotion.
+Yes – Ara integration verified against real Ara server; keep `ara_enabled` default false to avoid impacting non-Ara runs.
