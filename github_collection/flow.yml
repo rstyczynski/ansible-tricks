@@ -60,9 +60,8 @@
         - name: Authenticate GitHub CLI
           ansible.builtin.include_role:
             name: rstyczynski.github.github_auth
-          vars:
-            github_auth_gh_version: "{{ github_precheck_gh_version }}"
-            github_auth_gh_auth_status: "{{ github_precheck_gh_auth_status }}"
+          # No parameters required - precheck already verified dependencies
+          # gh CLI manages authentication state internally
 
         - name: Clone Repository
           ansible.builtin.include_role:

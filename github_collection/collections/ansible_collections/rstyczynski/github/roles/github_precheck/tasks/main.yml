@@ -22,12 +22,28 @@
   ansible.builtin.command: gh --version
   register: github_precheck_gh_version
   changed_when: false
-  failed_when: false
+  # failed_when removed - will fail if gh not found (hard check)
 
 - name: "Precheck: Display gh CLI version"
   ansible.builtin.debug:
     msg: "Using {{ github_precheck_gh_version.stdout }}"
-  when: github_precheck_gh_version.rc == 0
+
+- name: "Precheck: Verify gh CLI is installed"
+  ansible.builtin.assert:
+    that:
+      - github_precheck_gh_version.rc == 0
+    fail_msg: |
+      GitHub CLI (gh) is not installed or not in PATH.
+
+      The rstyczynski.github collection requires gh CLI for GitHub operations.
+
+      Install gh CLI: https://cli.github.com/
+
+      Installation methods:
+        - macOS: brew install gh
+        - Linux: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+        - Windows: choco install gh
+    success_msg: "GitHub CLI (gh) is available: {{ github_precheck_gh_version.stdout }}"
 
 - name: "Precheck: Check if gh CLI is authenticated"  # noqa: command-instead-of-module
   ansible.builtin.command: gh auth status
@@ -41,12 +57,7 @@
     msg: "GitHub CLI is authenticated"
   when: github_precheck_gh_version.rc == 0 and github_precheck_gh_auth_status.rc == 0
 
-- name: "Precheck: Warning if gh CLI is not installed"
+- name: "Precheck: Info if gh CLI is not authenticated"
   ansible.builtin.debug:
-    msg: "WARNING: GitHub CLI (gh) is not installed. PR creation will fail. Install: https://cli.github.com/"
-  when: github_precheck_gh_version.rc != 0
-
-- name: "Precheck: Warning if gh CLI is not authenticated"
-  ansible.builtin.debug:
-    msg: "WARNING: GitHub CLI is not authenticated. PR creation will fail. Run: gh auth login"
+    msg: "INFO: GitHub CLI is not authenticated. github_auth role will handle authentication."
   when: github_precheck_gh_version.rc == 0 and github_precheck_gh_auth_status.rc != 0
