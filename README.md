@@ -92,30 +92,8 @@ chmod 600 ~/.netrc
 
 ## Recent Updates
 
-### Sprint 5 - Role argument specification fix
+### Sprint 8 - Ara integration (tested)
 
-**Status:** implemented
-
-**Backlog Items Implemented:**
-- **GHC-7**: Roles use argument specification at meta - tested ✅
-
-**Summary:**
-Verified and documented that all 16 roles in the collection correctly use argument specifications from `meta/argument_specs.yml` files. All roles with input parameters use the `validate_argument_spec` module with specifications loaded from the meta directory, ensuring:
-- Centralized argument definitions (single source of truth)
-- Automatic argument validation by Ansible
-- `ansible-doc` documentation generation
-- No inline argument specifications
-
-**Key Achievement:**
-- ✅ All 15 roles with parameters use correct pattern: spec from `meta/argument_specs.yml`
-- ✅ github_precheck correctly has no validation (no input parameters)
-- ✅ Pattern is consistent across all roles
-- ✅ 100% compliance with GHC-7 requirement
-
-**Documentation:**
-- Implementation: `progress/sprint_5/sprint_5_implementation.md`
-- Tests: `progress/sprint_5/sprint_5_tests.md`
-- Design: `progress/sprint_5/sprint_5_design.md`
-- Backlog traceability: `progress/backlog/GHC-7/`
-
----
+- Added Ara-enabled workflow variant `github_collection/flow_ara.yml` with handler-based REST emission to Ara API.  
+- Default `flow.yml` remains without Ara; Ara path is opt-in via `ara_enabled` variables.  
+- Documentation and tests: `progress/sprint_8/sprint_8_implementation.md`, `progress/sprint_8/sprint_8_tests.md`, `progress/sprint_8/sprint_8_design.md`, `progress/sprint_8/sprint_8_analysis.md`.
