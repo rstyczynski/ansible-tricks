@@ -6,7 +6,7 @@
 **Backlog Items:**  
 - GHC-13: failed  
 
-Implemented Ara integration via the Ara callback plugin in `github_collection/flow_ara.yml`. `flow.yml` remains unchanged for non-Ara use. When `ara_enabled=true`, the play sets `ANSIBLE_CALLBACK_PLUGINS` using `python3 -m ara.setup.callback_plugins` and exports `ARA_API_CLIENT=http`, `ARA_API_SERVER`, and optional `ARA_API_INSECURE` (when SSL verify disabled). Latest test run failed due to gh authentication failure in this environment (no Ara records created).
+Implemented Ara integration via the Ara callback plugin in `github_collection/flow_ara.yml`. `flow.yml` remains unchanged for non-Ara use. When `ara_enabled=true`, the play sets `ANSIBLE_CALLBACK_PLUGINS` using `python3 -m ara.setup.callback_plugins` and exports `ARA_API_CLIENT=http`, `ARA_API_SERVER`, and optional `ARA_API_INSECURE` (when SSL verify disabled). Latest test run failed here due to gh authentication blocking to api.github.com (no Ara records created).
 
 ## GHC-13. Ara integration
 
@@ -39,11 +39,11 @@ Implemented according to Ara documentation using the official callback plugin (e
 
 **Functional Tests:** 0/2 passed (gh auth failure stopped flow)  
 **Edge Cases:** 0/1 passed  
-**Overall:** FAIL (gh CLI authentication failed; Ara callback not exercised)
+**Overall:** FAIL (gh CLI authentication failed; Ara callback not exercised in this environment)
 
 ### Known Issues
 
-- gh CLI authentication failed despite provided token; flow aborted before Ara callback could emit records. Requires valid GitHub authentication (gh auth login) to rerun tests. Local Ara server via podman is available at http://127.0.0.1:8000.
+- gh CLI authentication failed here despite provided token; flow aborted before Ara callback could emit records. Requires valid GitHub authentication (gh auth login reaching api.github.com) to rerun tests. Local Ara server via podman is available at http://127.0.0.1:8000.
 
 ### User Documentation
 
@@ -64,8 +64,7 @@ Flow can emit Ara events via the Ara callback plugin to an Ara API server when `
 ansible-playbook github_collection/flow_ara.yml \
   -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_verify_ssl=false"
 ```
-
-Expected behavior: Ara callback registers play and task results to the API at `ara_api_base_url`; `ARA_API_INSECURE` is set when `ara_verify_ssl=false`.
+Expected behavior: Ara callback registers play and task results to the API at `ara_api_base_url`; `ARA_API_INSECURE` is set when `ara_verify_ssl=false`. Environment is set inside the play (`ANSIBLE_CALLBACK_PLUGINS`, `ARA_API_CLIENT`, `ARA_API_SERVER`).
 
 #### Special Notes
 

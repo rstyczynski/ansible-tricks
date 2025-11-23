@@ -1,7 +1,7 @@
 # Sprint 8 - Documentation Summary
 
 **Validation Date:** 2025-11-23  
-**Sprint Status:** tested  
+**Sprint Status:** failed  
 
 ## Documentation Files Reviewed
 
@@ -13,15 +13,15 @@
 ## Compliance Verification
 
 **Implementation Docs:** Compliant (user docs, artifacts table, copy-paste examples, no prohibited commands).  
-**Test Docs:** Compliant (real Ara server sequences, statuses recorded, no prohibited commands).  
-**Design Docs:** Compliant (handler-based Ara integration with doc references; Status left as Proposed per PO ownership).  
+**Test Docs:** Compliant; recorded failure due to gh authentication (no prohibited commands).  
+**Design Docs:** Compliant (callback-based Ara integration with doc references; Status left as Proposed per PO ownership).  
 **Analysis Docs:** Compliant (requirements and feasibility captured).  
 **Code Snippets:** Copy-paste-able; no `exit` commands.  
 
 ## Consistency Check
 
 - Backlog item GHC-13 consistent across all files.  
-- PROGRESS_BOARD.md: Sprint 8/GHC-13 set to tested.  
+- PROGRESS_BOARD.md: Sprint 8/GHC-13 set to failed after gh auth failure.  
 - Flow variants documented: `flow.yml` (no Ara) and `flow_ara.yml` (Ara-enabled).  
 - README updated with Sprint 8 recent update.  
 
@@ -38,9 +38,9 @@
 ## Documentation Quality Assessment
 
 **Overall Quality:** Good  
-**Strengths:** Clear opt-in Ara path, real-server test results recorded, podman setup guidance.  
-**Areas for Improvement:** None noted.  
+**Strengths:** Clear opt-in Ara path (callback-based), failure recorded transparently, podman setup guidance.  
+**Areas for Improvement:** Needs successful retest once gh auth is available.  
 
 ## Status
 
-Documentation phase complete.
+Documentation phase complete (tests failed: gh authentication blocked flow).
