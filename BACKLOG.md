@@ -135,6 +135,31 @@ Ara server runs in the network and is accessible via REST API. Authentication to
 
 Use bests practices and general architecture from Ara http://ara.recordsansible.org
 
+To init ara:
+
+```
+# Install ansible (or ansible-core) with ara (excluding API server dependencies)
+python3 -m pip install --user ansible ara
+
+# Configure Ansible to enable ara
+export ANSIBLE_CALLBACK_PLUGINS="$(python3 -m ara.setup.callback_plugins)"
+
+# Set up the ara callback to know where the API server is located
+export ARA_API_CLIENT="http"
+export ARA_API_SERVER="http://127.0.0.1:8000"
+```
+Source:https://ara.recordsansible.org
+
+To apply labels:
+
+```
+ansible-playbook -i hosts playbook.yaml \
+    -e ara_playbook_name="deploy prod" \
+    -e ara_playbook_labels=deploy,prod
+```
+Source: https://ara.readthedocs.io/en/latest/ansible-plugins-and-use-cases.html#playbook-names-and-labels
+
+
 ### GHC-14. Long running task
 
 Prepare new collection: ansible with support for long running tasks. Use already available task with async, storing job identifier for further use. Job identifier is stored in a map next to host, playbook name, and play identifier (look at GHC-13) flushed to persistent storage. Potential option is to use Ara server as persistence for this, if it's possible to easily get value from Ara REST API for a given search pattern. Persistence is configurable - may be ara, local file system, object storage.
