@@ -54,8 +54,6 @@
     ara_api_client: "http"
     ara_verify_ssl: true
     ara_playbook_label: ""
-
-  vars:
     ara_environment: {}
 
   pre_tasks:
