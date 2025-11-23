@@ -50,7 +50,7 @@ Backlog Items: GHC-9, GHC-10, GHC-11.
 
 ## Sprint 7 - Comment barrier role
 
-Status: Progress
+Status: Done
 Mode: YOLO
 
 Role is concluded with Molecule tests. flow.yml is extended by this step. One of releasing patterns is /approved.
@@ -59,7 +59,7 @@ Backlog Items: GHC-12
 
 ## Sprint 8 - Ara integration
 
-Status: Planned
+Status: Progress
 Mode: YOLO
 
 Backlog Items: GHC-13
