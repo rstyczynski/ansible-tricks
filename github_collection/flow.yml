@@ -46,11 +46,11 @@
     pr_title: "Test Collection Workflow"
     pr_body: "Automated test to verify rstyczynski.github collection end-to-end workflow"
     pr_comment: "/approved (auto)"
-    pr_comment_barrier_patterns:
+    arg_pr_comment_barrier_patterns:
       - "/approved"
-    pr_comment_barrier_timeout: 300
-    pr_comment_barrier_interval: 5
-    pr_comment_barrier_latest_only: true
+    arg_pr_comment_barrier_timeout: 300
+    arg_pr_comment_barrier_interval: 5
+    arg_pr_comment_barrier_latest_only: true
     pr_status_check_retries: 6
     pr_status_check_delay: 5
     pr_merge: true
@@ -130,6 +130,10 @@
           changed_when: false
           failed_when: pr_comment_barrier_pr_number.rc != 0
 
+        - name: Set arg variables for comment barrier
+          ansible.builtin.set_fact:
+            arg_pr_comment_barrier_pr_number: "{{ pr_comment_barrier_pr_number.stdout | int }}"
+
         - name: Set variables for PR status check
           ansible.builtin.set_fact:
             pr_status_check_dest_path: "{{ dest_path }}"
@@ -167,11 +171,11 @@
             name: rstyczynski.github.pr_comment_barrier
           vars:
             pr_comment_barrier_repo: "{{ repo_url | regex_replace('https://github.com/', '') | regex_replace('\\.git$', '') }}"
-            pr_comment_barrier_issue_number: "{{ pr_comment_barrier_pr_number.stdout | int }}"
-            pr_comment_barrier_patterns: "{{ pr_comment_barrier_patterns }}"
-            pr_comment_barrier_timeout: "{{ pr_comment_barrier_timeout }}"
-            pr_comment_barrier_interval: "{{ pr_comment_barrier_interval }}"
-            pr_comment_barrier_latest_only: "{{ pr_comment_barrier_latest_only }}"
+            pr_comment_barrier_issue_number: "{{ arg_pr_comment_barrier_pr_number }}"
+            pr_comment_barrier_patterns: "{{ arg_pr_comment_barrier_patterns }}"
+            pr_comment_barrier_timeout: "{{ arg_pr_comment_barrier_timeout }}"
+            pr_comment_barrier_interval: "{{ arg_pr_comment_barrier_interval }}"
+            pr_comment_barrier_latest_only: "{{ arg_pr_comment_barrier_latest_only }}"
 
         - name: "Merge PR"
           ansible.builtin.include_role:
