@@ -46,7 +46,7 @@ ansible-playbook flow.yml -e "ara_enabled=false"
 **Test Sequence:**
 ```bash
 cd github_collection
-ansible-playbook flow_ara.yml \
+ARA_PLAYBOOK_LABEL=$(python3 - <<'PY'\nimport secrets\nprint(secrets.token_hex(16))\nPY) \\\nANSIBLE_CALLBACK_PLUGINS=\"$(python3 -m ara.setup.callback_plugins)\" \\\nARA_API_CLIENT=http \\\nARA_API_SERVER=http://127.0.0.1:8000 \\\nARA_API_INSECURE=1 \\\nansible-playbook flow_ara.yml \
   -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_verify_ssl=false"
 ```
 
@@ -63,7 +63,7 @@ ansible-playbook flow_ara.yml \
 **Test Sequence:**
 ```bash
 cd github_collection
-ansible-playbook flow_ara.yml \
+ARA_PLAYBOOK_LABEL=$(python3 - <<'PY'\nimport secrets\nprint(secrets.token_hex(16))\nPY) \\\nANSIBLE_CALLBACK_PLUGINS=\"$(python3 -m ara.setup.callback_plugins)\" \\\nARA_API_CLIENT=http \\\nARA_API_SERVER=http://127.0.0.1:8000 \\\nARA_API_INSECURE=1 \\\nansible-playbook flow_ara.yml \
   -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_verify_ssl=false"
 ```
 

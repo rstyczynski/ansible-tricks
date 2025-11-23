@@ -53,6 +53,7 @@
     ara_api_base_url: "http://127.0.0.1:8000"
     ara_api_client: "http"
     ara_verify_ssl: true
+    ara_playbook_label: ""
 
   pre_tasks:
     - name: Resolve Ara callback plugins path
@@ -66,8 +67,14 @@
     ARA_API_CLIENT: "{{ ara_enabled | bool | ternary(ara_api_client, omit) }}"
     ARA_API_SERVER: "{{ ara_enabled | bool | ternary(ara_api_base_url, omit) }}"
     ARA_API_INSECURE: "{{ (ara_enabled and (not ara_verify_ssl)) | ternary('1', omit) }}"
+    ARA_PLAYBOOK_LABEL: "{{ ara_enabled | bool | ternary(ara_playbook_label, omit) }}"
 
   tasks:
+    - name: Generate Ara playbook label if not provided
+      ansible.builtin.set_fact:
+        ara_playbook_label: "{{ lookup('ansible.builtin.password', '/dev/null length=32 chars=hex') }}"
+      when: ara_enabled | bool and (ara_playbook_label | default('') | length == 0)
+
     - name: Execute GitHub workflow
       block:
         - name: Precheck
