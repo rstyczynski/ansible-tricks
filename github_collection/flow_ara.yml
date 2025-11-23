@@ -55,9 +55,6 @@
     ara_verify_ssl: true
     ara_playbook_label: ""
 
-  vars:
-    ara_environment: {}
-
   pre_tasks:
     - name: Resolve Ara callback plugins path
       ansible.builtin.command: python3 -m ara.setup.callback_plugins
@@ -65,19 +62,12 @@
       changed_when: false
       when: ara_enabled | bool
 
-    - name: Build Ara environment variables
-      ansible.builtin.set_fact:
-        ara_environment: >-
-          {{
-            {
-              'ANSIBLE_CALLBACK_PLUGINS': ara_callback_plugins.stdout,
-              'ARA_API_CLIENT': ara_api_client,
-              'ARA_API_SERVER': ara_api_base_url,
-              'ARA_PLAYBOOK_LABEL': ara_playbook_label
-            }
-            | combine( (not ara_verify_ssl) | ternary({'ARA_API_INSECURE': '1'}, {}) )
-          }}
-      when: ara_enabled | bool
+  environment:
+    ANSIBLE_CALLBACK_PLUGINS: "{{ ara_enabled | bool | ternary(ara_callback_plugins.stdout, lookup('env','ANSIBLE_CALLBACK_PLUGINS')) }}"
+    ARA_API_CLIENT: "{{ ara_enabled | bool | ternary(ara_api_client, omit) }}"
+    ARA_API_SERVER: "{{ ara_enabled | bool | ternary(ara_api_base_url, omit) }}"
+    ARA_API_INSECURE: "{{ (ara_enabled and (not ara_verify_ssl)) | ternary('1', omit) }}"
+    ARA_PLAYBOOK_LABEL: "{{ ara_enabled | bool | ternary(ara_playbook_label, omit) }}"
 
   tasks:
     - name: Generate Ara playbook label if not provided
@@ -241,4 +231,3 @@
           ansible.builtin.fail:
             msg: "Workflow failed - check errors above"
           when: workflow_failed is defined and workflow_failed | bool
-      environment: "{{ ara_environment if ara_enabled | bool else {} }}"
