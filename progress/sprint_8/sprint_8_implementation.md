@@ -2,15 +2,15 @@
 
 ## Implementation Overview
 
-**Sprint Status:** implemented  
+**Sprint Status:** failed  
 **Backlog Items:**  
-- GHC-13: tested  
+- GHC-13: failed  
 
-Implemented Ara integration via handlers in `github_collection/flow_ara.yml` (dedicated Ara-enabled flow). `flow.yml` remains unchanged for non-Ara use. Added opt-in configuration variables, run-id generation, handler-based registration/event emission, and success/failure notifications. Integration defaults to disabled in the Ara flow to avoid breaking existing flows. Verified against a real Ara server.
+Implemented Ara integration via handlers in `github_collection/flow_ara.yml` (dedicated Ara-enabled flow). `flow.yml` remains unchanged for non-Ara use. Added opt-in configuration variables, run-id generation, handler-based registration/event emission, and success/failure notifications. Integration defaults to disabled in the Ara flow to avoid breaking existing flows. Latest test run failed due to gh authentication failure (no Ara POSTs executed).
 
 ## GHC-13. Ara integration
 
-Status: tested
+Status: failed
 
 ### Implementation Summary
 
@@ -36,17 +36,17 @@ Implemented according to approved handler-based design referencing Ara docs; use
 
 | Artifact | Purpose | Status | Tested |
 |----------|---------|--------|--------|
-| github_collection/flow_ara.yml | Ara vars, run-id generation, event notifications, handlers for Ara REST | Complete | Yes (real Ara) |
+| github_collection/flow_ara.yml | Ara vars, run-id generation, event notifications, handlers for Ara REST | Complete | Not verified (flow aborted at gh auth) |
 
 ### Testing Results
 
-**Functional Tests:** 2/2 executed (PASS)  
-**Edge Cases:** 1/1 executed (PASS)  
-**Overall:** PASS (real Ara server)
+**Functional Tests:** 0/2 passed (gh auth failure stopped flow)  
+**Edge Cases:** 0/1 passed  
+**Overall:** FAIL (gh CLI authentication failed before Ara POSTs)
 
 ### Known Issues
 
-None.
+- gh CLI authentication failed despite netrc token; flow aborted before any Ara POSTs. Requires valid GitHub authentication (gh auth login) to rerun tests. Local Ara server via podman is available at http://127.0.0.1:8000.
 
 ### User Documentation
 
@@ -120,18 +120,18 @@ under_construction (pending test execution with Ara/mock)
 
 ### Test Results Summary
 
-- All planned tests executed against real Ara server; 3/3 passed.
+- All planned tests attempted; 0/3 passed. gh auth failure blocked execution before Ara calls.
 
 ### Integration Verification
 
-- Flow remains unchanged when `ara_enabled=false` (default); additive integration only. Verified Ara path end-to-end.
+- Flow remains unchanged when `ara_enabled=false` (default); additive integration only. Ara path not verified due to gh auth failure.
 
 ### Documentation Completeness
 
 - Implementation docs: Complete  
-- Test docs: Executed and recorded  
+- Test docs: Recorded (failed)  
 - User docs: Included in this file
 
 ### Ready for Production
 
-Yes – Ara integration verified against real Ara server; keep `ara_enabled` default false to avoid impacting non-Ara runs.
+No – blocked by gh authentication failure; retest required with valid GitHub credentials.
