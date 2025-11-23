@@ -92,6 +92,24 @@ chmod 600 ~/.netrc
 
 ## Recent Updates
 
+### Sprint 7 - Comment barrier role
+
+**Status:** implemented_partially
+
+**Backlog Items Implemented:**
+- **GHC-12**: Comment barrier role (tests pending)
+
+**Key Features Added:**
+- New `pr_comment_barrier` role that waits for configurable approval-style comments on PRs/issues with regex patterns, timeout, interval, and latest-only toggle.
+- `flow.yml` now captures PR number and waits for approval comment (default `/approved`) before merge.
+
+**Documentation:**
+- Implementation: `progress/sprint_7/sprint_7_implementation.md`
+- Tests: `progress/sprint_7/sprint_7_tests.md`
+- Design: `progress/sprint_7/sprint_7_design.md`
+
+---
+
 ### Sprint 5 - Role argument specification fix
 
 **Status:** implemented

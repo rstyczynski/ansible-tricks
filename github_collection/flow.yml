@@ -12,10 +12,10 @@
 # | pr_title                  | string | PR title                                    |
 # | pr_body                   | string | PR body                                     |
 # | pr_comment                | string | PR comment (defaults to approval trigger)   |
-# | comment_barrier_patterns  | list   | Comment regex patterns to release workflow  |
-# | comment_barrier_timeout   | int    | Timeout for waiting on approval comment     |
-# | comment_barrier_interval  | int    | Polling interval for comment checks         |
-# | comment_barrier_latest_only| bool  | Check only the latest comment if true       |
+# | pr_comment_barrier_patterns  | list   | Comment regex patterns to release workflow  |
+# | pr_comment_barrier_timeout   | int    | Timeout for waiting on approval comment     |
+# | pr_comment_barrier_interval  | int    | Polling interval for comment checks         |
+# | pr_comment_barrier_latest_only| bool  | Check only the latest comment if true       |
 # | pr_status_check_retries   | int    | Number of retry attempts                    |
 # | pr_status_check_delay     | int    | Seconds to wait between retries             |
 # | pr_merge                  | bool   | Whether to merge PR                         |
@@ -46,11 +46,11 @@
     pr_title: "Test Collection Workflow"
     pr_body: "Automated test to verify rstyczynski.github collection end-to-end workflow"
     pr_comment: "/approved (auto)"
-    comment_barrier_patterns:
+    pr_comment_barrier_patterns:
       - "/approved"
-    comment_barrier_timeout: 300
-    comment_barrier_interval: 5
-    comment_barrier_latest_only: true
+    pr_comment_barrier_timeout: 300
+    pr_comment_barrier_interval: 5
+    pr_comment_barrier_latest_only: true
     pr_status_check_retries: 6
     pr_status_check_delay: 5
     pr_merge: true
@@ -126,9 +126,9 @@
             gh pr view --json number --jq '.number'
           args:
             chdir: "{{ dest_path }}"
-          register: comment_barrier_pr_number
+          register: pr_comment_barrier_pr_number
           changed_when: false
-          failed_when: comment_barrier_pr_number.rc != 0
+          failed_when: pr_comment_barrier_pr_number.rc != 0
 
         - name: Set variables for PR status check
           ansible.builtin.set_fact:
@@ -164,14 +164,14 @@
 
         - name: "Wait for approval comment barrier"
           ansible.builtin.include_role:
-            name: rstyczynski.github.comment_barrier
+            name: rstyczynski.github.pr_comment_barrier
           vars:
-            comment_barrier_repo: "{{ repo_url | regex_replace('https://github.com/', '') | regex_replace('\\.git$', '') }}"
-            comment_barrier_issue_number: "{{ comment_barrier_pr_number.stdout | int }}"
-            comment_barrier_patterns: "{{ comment_barrier_patterns }}"
-            comment_barrier_timeout: "{{ comment_barrier_timeout }}"
-            comment_barrier_interval: "{{ comment_barrier_interval }}"
-            comment_barrier_latest_only: "{{ comment_barrier_latest_only }}"
+            pr_comment_barrier_repo: "{{ repo_url | regex_replace('https://github.com/', '') | regex_replace('\\.git$', '') }}"
+            pr_comment_barrier_issue_number: "{{ pr_comment_barrier_pr_number.stdout | int }}"
+            pr_comment_barrier_patterns: "{{ pr_comment_barrier_patterns }}"
+            pr_comment_barrier_timeout: "{{ pr_comment_barrier_timeout }}"
+            pr_comment_barrier_interval: "{{ pr_comment_barrier_interval }}"
+            pr_comment_barrier_latest_only: "{{ pr_comment_barrier_latest_only }}"
 
         - name: "Merge PR"
           ansible.builtin.include_role:

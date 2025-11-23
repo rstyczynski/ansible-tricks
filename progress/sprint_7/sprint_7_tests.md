@@ -21,9 +21,9 @@
 cd github_collection
 # Create/ensure PR exists using existing flow defaults
 ansible-playbook -i localhost, flow.yml \
-  -e "comment_barrier_timeout=120" \
-  -e "comment_barrier_interval=5" \
-  -e "comment_barrier_patterns=['/approved']"
+  -e "pr_comment_barrier_timeout=120" \
+  -e "pr_comment_barrier_interval=5" \
+  -e "pr_comment_barrier_patterns=['/approved']"
 ```
 
 **Status:** PENDING (not executed here)
@@ -43,8 +43,8 @@ ansible-playbook -i localhost, flow.yml \
 cd github_collection
 ansible-playbook -i localhost, flow.yml \
   -e "pr_comment='LGTM'" \
-  -e "comment_barrier_patterns=['/approved','LGTM']" \
-  -e "comment_barrier_timeout=120"
+  -e "pr_comment_barrier_patterns=['/approved','LGTM']" \
+  -e "pr_comment_barrier_timeout=120"
 ```
 
 **Status:** PENDING
@@ -64,9 +64,9 @@ ansible-playbook -i localhost, flow.yml \
 cd github_collection
 ansible-playbook -i localhost, flow.yml \
   -e "pr_comment='no-approval'" \
-  -e "comment_barrier_patterns=['/approved']" \
-  -e "comment_barrier_timeout=30" \
-  -e "comment_barrier_interval=5"
+  -e "pr_comment_barrier_patterns=['/approved']" \
+  -e "pr_comment_barrier_timeout=30" \
+  -e "pr_comment_barrier_interval=5"
 ```
 
 **Status:** PENDING
@@ -85,9 +85,9 @@ ansible-playbook -i localhost, flow.yml \
 ```bash
 cd github_collection
 ansible-playbook -i localhost, flow.yml \
-  -e "comment_barrier_latest_only=true" \
-  -e "comment_barrier_patterns=['/approved-latest']" \
-  -e "comment_barrier_timeout=120"
+  -e "pr_comment_barrier_latest_only=true" \
+  -e "pr_comment_barrier_patterns=['/approved-latest']" \
+  -e "pr_comment_barrier_timeout=120"
 ```
 
 **Status:** PENDING

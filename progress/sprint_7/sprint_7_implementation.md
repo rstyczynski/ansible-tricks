@@ -12,7 +12,7 @@
 Status: implemented
 
 ### Implementation Summary
-- Added `comment_barrier` role to poll GitHub PR/issue comments via gh CLI with regex pattern matching, timeout, interval, and latest-only toggle.
+- Added `pr_comment_barrier` role to poll GitHub PR/issue comments via gh CLI with regex pattern matching, timeout, interval, and latest-only toggle.
 - Integrated role into `flow.yml` with defaults for `/approved` and captured PR number via gh to gate merge.
 - Set argument specification in `meta/argument_specs.yml` and validation via `validate_argument_spec`.
 
@@ -28,8 +28,8 @@ Follows YOLO-approved design: gh CLI, input validation, outputs surfaced, and fl
 
 | Artifact | Purpose | Status | Tested |
 |----------|---------|--------|--------|
-| github_collection/collections/ansible_collections/rstyczynski/github/roles/comment_barrier/meta/argument_specs.yml | Defines inputs/outputs for comment barrier | Complete | No |
-| github_collection/collections/ansible_collections/rstyczynski/github/roles/comment_barrier/tasks/main.yml | Implements polling and matching logic | Complete | No |
+| github_collection/collections/ansible_collections/rstyczynski/github/roles/pr_comment_barrier/meta/argument_specs.yml | Defines inputs/outputs for PR comment barrier | Complete | No |
+| github_collection/collections/ansible_collections/rstyczynski/github/roles/pr_comment_barrier/tasks/main.yml | Implements polling and matching logic | Complete | No |
 | github_collection/flow.yml | Adds barrier defaults, captures PR number, and invokes role before merge | Updated | No |
 
 ### Testing Results
@@ -65,7 +65,7 @@ Basic role invocation:
         comment_barrier_latest_only: true
 ```
 
-Expected behavior: polls comments on PR/issue #123 until a comment body matches `/approved`, then sets outputs `comment_barrier_matched_*`. Fails after ~300s if no match found.
+Expected behavior: polls comments on PR/issue #123 until a comment body matches `/approved`, then sets outputs `pr_comment_barrier_matched_*`. Fails after ~300s if no match found.
 
 #### Examples
 Timeout example (expects failure):

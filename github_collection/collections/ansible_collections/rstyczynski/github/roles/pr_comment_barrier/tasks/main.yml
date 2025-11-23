@@ -1,0 +1,81 @@
+# INPUT VARIABLES TABLE
+# | name                              | type  | description                                      |
+# |-----------------------------------|-------|--------------------------------------------------|
+# | pr_comment_barrier_repo           | str   | Repository in owner/name format                  |
+# | pr_comment_barrier_issue_number   | int   | Issue or PR number to monitor                    |
+# | pr_comment_barrier_patterns       | list  | List of regex patterns to search in comments     |
+# | pr_comment_barrier_timeout        | int   | Timeout in seconds                               |
+# | pr_comment_barrier_interval       | int   | Polling interval in seconds                      |
+# | pr_comment_barrier_latest_only    | bool  | Whether to check only the latest comment         |
+#
+# OUTPUT VARIABLES TABLE
+# | name                              | type  | description                                      |
+# | pr_comment_barrier_matched        | bool  | Whether a matching comment was found             |
+# | pr_comment_barrier_matched_body   | str   | Matched comment body                             |
+# | pr_comment_barrier_matched_author | str   | Author login of the matched comment              |
+# | pr_comment_barrier_matched_at     | str   | Timestamp of the matched comment                 |
+---
+- name: "Comment barrier: validate arguments"
+  ansible.builtin.validate_argument_spec:
+    argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
+
+- name: "Comment barrier: ensure timeout and interval are positive"
+  ansible.builtin.assert:
+    that:
+      - pr_comment_barrier_timeout | int > 0
+      - pr_comment_barrier_interval | int > 0
+    fail_msg: "comment_barrier_timeout and comment_barrier_interval must be greater than zero"
+
+- name: "Comment barrier: compute retry attempts"
+  ansible.builtin.set_fact:
+    pr_comment_barrier_attempts: >-
+      {{ ((pr_comment_barrier_timeout | int + (pr_comment_barrier_interval | int) - 1) // (pr_comment_barrier_interval | int)) | int }}
+
+- name: "Comment barrier: poll for matching comment"  # noqa: command-instead-of-module
+  ansible.builtin.command: >-
+    gh api repos/{{ pr_comment_barrier_repo }}/issues/{{ pr_comment_barrier_issue_number }}/comments
+  register: pr_comment_barrier_poll
+  changed_when: false
+  failed_when: pr_comment_barrier_poll.rc != 0
+  retries: "{{ pr_comment_barrier_attempts }}"
+  delay: "{{ pr_comment_barrier_interval }}"
+  until: >-
+    (
+      (
+        pr_comment_barrier_latest_only
+        | ternary(
+            (pr_comment_barrier_poll.stdout | default('[]') | from_json | list)[-1:],
+            (pr_comment_barrier_poll.stdout | default('[]') | from_json | list)
+          )
+      )
+      | selectattr('body', 'defined')
+      | selectattr('body', 'regex_search', '(' + (pr_comment_barrier_patterns | join(')|(')) + ')')
+      | list
+    ) | length > 0
+
+- name: "Comment barrier: prepare comments list"
+  ansible.builtin.set_fact:
+    pr_comment_barrier_comments: >-
+      {{ pr_comment_barrier_poll.stdout | default('[]') | from_json | list }}
+
+- name: "Comment barrier: reduce to latest comment when requested"
+  ansible.builtin.set_fact:
+    pr_comment_barrier_comments: >-
+      {{ pr_comment_barrier_latest_only | ternary(pr_comment_barrier_comments[-1:], pr_comment_barrier_comments) }}
+
+- name: "Comment barrier: collect matched comment"
+  ansible.builtin.set_fact:
+    pr_comment_barrier_matched_comment: >-
+      {{ (
+           pr_comment_barrier_comments
+           | selectattr('body', 'defined')
+           | selectattr('body', 'regex_search', '(' + (pr_comment_barrier_patterns | join(')|(')) + ')')
+           | list
+         ) | first | default({}) }}
+
+- name: "Comment barrier: expose outputs"
+  ansible.builtin.set_fact:
+    pr_comment_barrier_matched: "{{ pr_comment_barrier_matched_comment != {} }}"
+    pr_comment_barrier_matched_body: "{{ pr_comment_barrier_matched_comment.body | default('') }}"
+    pr_comment_barrier_matched_author: "{{ pr_comment_barrier_matched_comment.user.login | default('') }}"
+    pr_comment_barrier_matched_at: "{{ pr_comment_barrier_matched_comment.created_at | default('') }}"
