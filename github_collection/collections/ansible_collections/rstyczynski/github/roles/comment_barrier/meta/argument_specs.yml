@@ -1,0 +1,49 @@
+---
+argument_specs:
+  main:
+    short_description: "Wait for a GitHub comment matching one of the provided patterns"
+    options:
+      comment_barrier_repo:
+        description: "Repository in owner/name format"
+        type: str
+        required: true
+      comment_barrier_issue_number:
+        description: "Issue or pull request number to monitor"
+        type: int
+        required: true
+      comment_barrier_patterns:
+        description: "List of regex patterns to match against comment bodies"
+        type: list
+        elements: str
+        required: true
+      comment_barrier_timeout:
+        description: "Timeout in seconds before failing if no comment matches"
+        type: int
+        required: false
+        default: 300
+      comment_barrier_interval:
+        description: "Polling interval in seconds"
+        type: int
+        required: false
+        default: 5
+      comment_barrier_latest_only:
+        description: "When true, only inspect the latest comment instead of full history"
+        type: bool
+        required: false
+        default: false
+      comment_barrier_matched:
+        description: "[OUTPUT] Whether a matching comment was found"
+        type: bool
+        required: false
+      comment_barrier_matched_body:
+        description: "[OUTPUT] Matched comment body"
+        type: str
+        required: false
+      comment_barrier_matched_author:
+        description: "[OUTPUT] Author login of the matched comment"
+        type: str
+        required: false
+      comment_barrier_matched_at:
+        description: "[OUTPUT] Timestamp of the matched comment"
+        type: str
+        required: false
