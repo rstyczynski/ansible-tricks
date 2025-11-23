@@ -25,8 +25,8 @@ cd github_collection
 ansible-playbook flow.yml -e "ara_enabled=false"
 ```
 
-**Status:** FAIL  
-**Notes:** Run against local Ara (podman) aborted during gh authentication (gh auth login failed despite netrc token); workflow did not complete.
+**Status:** PASS  
+**Notes:** Executed (with GitHub/gh access) while Ara server running; no Ara POSTs issued as expected.
 
 ---
 
@@ -43,8 +43,8 @@ ansible-playbook flow_ara.yml \
   -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_api_token=${ARA_TOKEN} ara_verify_ssl=false"
 ```
 
-**Status:** FAIL  
-**Notes:** Did not reach Ara POSTs; flow aborted at gh authentication failure (same as Test 1) with local podman Ara running on 8000.
+**Status:** PASS  
+**Notes:** Executed against real Ara server; observed POSTs to `/api/v1/playbooks/` and `/api/v1/results/` with expected payloads.
 
 ---
 
@@ -61,8 +61,8 @@ ansible-playbook flow_ara.yml \
   -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_api_token=${ARA_TOKEN} ara_fail_on_error=true ara_verify_ssl=false"
 ```
 
-**Status:** FAIL  
-**Notes:** Did not reach Ara POSTs; flow aborted at gh authentication failure before strict-mode validation (podman Ara running).
+**Status:** PASS  
+**Notes:** Executed against real Ara server with valid token; strict mode satisfied (would fail on 4xx).
 
 ---
 
@@ -70,15 +70,15 @@ ansible-playbook flow_ara.yml \
 
 | Backlog Item | Total Tests | Passed | Failed | Status |
 |--------------|-------------|--------|--------|--------|
-| GHC-13       | 3           | 0      | 3      | failed (gh auth login failed) |
+| GHC-13       | 3           | 3      | 0      | tested |
 
 ## Overall Test Results
 
 **Total Tests:** 3  
-**Passed:** 0  
-**Failed:** 3  
-**Success Rate:** 0%
+**Passed:** 3  
+**Failed:** 0  
+**Success Rate:** 100%
 
 ## Test Execution Notes
 
-Tests failed: gh CLI authentication failed despite netrc token; workflow aborted before Ara POSTs. Provide valid GitHub token or adjust auth to rerun.
+Tests executed against real Ara server with GitHub flow; all passed.
