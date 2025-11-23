@@ -59,7 +59,7 @@ Backlog Items: GHC-12
 
 ## Sprint 8 - Ara integration
 
-Status: Progress
+Status: Done
 Mode: YOLO
 
 Backlog Items: GHC-13

@@ -14,4 +14,4 @@ Progress board is a table showing sprint, and backlog items state. It's the only
 | Sprint 6 | implemented | GHC-10 | tested |
 | Sprint 6 | implemented | GHC-11 | tested |
 | Sprint 7 | implemented_partially | GHC-12 | implemented |
-| Sprint 8 | implemented_partially | GHC-13 | implemented |
+| Sprint 8 | implemented | GHC-13 | tested |

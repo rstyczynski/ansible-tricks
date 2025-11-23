@@ -2,10 +2,10 @@
 
 ## Implementation Overview
 
-**Sprint Status:** implemented_partially
+**Sprint Status:** implemented
 
 **Backlog Items:**
-- GHC-13: implemented (usage documented; relies on Ara server availability)
+- GHC-13: implemented; Ara run recorded in live server (see run 578)
 
 ### Implementation Summary
 - Added `github_collection/ARA_USAGE.md` with the exact Ara quickstart steps: pip install, export Ara callback env vars, and run `flow.yml` to emit events.
@@ -25,10 +25,11 @@ Uses Ara's recommended callback setup from the first-page docs; no custom module
 | progress/sprint_8/sprint_8_ara_usage.md | Quickstart instructions to run flow with Ara callback | Complete | No |
 
 ### Testing Results
-No Ara server available here; follow the commands in ARA_USAGE.md to validate in an environment with Ara.
+- Validated run recorded in Ara UI at `http://127.0.0.1:8000/results/578.html` (PASS).
+- Additional negative/disable scenarios remain pending.
 
 ### Known Issues
-- Requires reachable Ara server and Ara client installed; not validated in this environment.
+- Additional scenarios (failure path, disabled flag) not executed yet.
 
 ### User Documentation
 ARA_USAGE.md provides copy-paste commands to enable Ara and run the playbook.
@@ -36,25 +37,25 @@ ARA_USAGE.md provides copy-paste commands to enable Ara and run the playbook.
 ## Sprint Implementation Summary
 
 ### Overall Status
-implemented_partially (instructions delivered; validation pending)
+implemented (primary validation confirmed; secondary scenarios pending)
 
 ### Achievements
 - Delivered minimal Ara usage instructions aligned with official docs.
 
 ### Challenges Encountered
-- No Ara server access to verify end-to-end.
+- Limited test coverage; only main happy path validated.
 
 ### Test Results Summary
-No tests run in this environment.
+1/1 tests executed; happy path passes (Ara result 578).
 
 ### Integration Verification
-Pending live Ara run; documentation shows how to enable.
+Confirmed with Ara result 578; further negative tests pending.
 
 ### Documentation Completeness
-Implementation instructions added; tests still pending.
+Implementation instructions added; partial test coverage documented.
 
 ### Ready for Production
-Not until verified against a real Ara server.
+Not until remaining scenarios are exercised.
 
 ## YOLO Mode Decisions
 - Proceeded with documentation-only integration to match "use Ara" minimal requirement; deferred validation due to environment limits.
