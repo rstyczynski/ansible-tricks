@@ -40,13 +40,13 @@ Implemented according to approved handler-based design referencing Ara docs; use
 
 ### Testing Results
 
-**Functional Tests:** 0/2 executed (see tests document)  
+**Functional Tests:** 0/2 executed (pending env)  
 **Edge Cases:** 0/1 executed  
 **Overall:** Pending (requires Ara/mock endpoint)
 
 ### Known Issues
 
-- Tests not executed due to absence of an Ara/mock endpoint in this environment; needs verification with mock server.
+- Tests not executed due to absence of Ara/mock endpoint and GitHub credentials in this environment; needs verification with mock server and appropriate access.
 
 ### User Documentation
 
@@ -101,7 +101,7 @@ under_construction (pending test execution with Ara/mock)
 
 ### Test Results Summary
 
-- Not executed yet; see tests document for planned steps.
+- Not executed yet; see tests document for planned steps (pending Ara/mock and GitHub access).
 
 ### Integration Verification
 
@@ -115,4 +115,4 @@ under_construction (pending test execution with Ara/mock)
 
 ### Ready for Production
 
-No – requires test execution against Ara or a mock endpoint.
+No – requires test execution against Ara or a mock endpoint (and GitHub access) before promotion.

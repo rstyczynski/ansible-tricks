@@ -22,7 +22,7 @@ ansible-playbook flow.yml -e "ara_enabled=false"
 ```
 
 **Status:** PENDING  
-**Notes:** Runs default workflow without Ara.
+**Notes:** Not executed here (requires GitHub credentials/gh access).
 
 ---
 
@@ -60,7 +60,7 @@ ansible-playbook flow_ara.yml -e "ara_enabled=true ara_api_base_url=http://127.0
 ```
 
 **Status:** PENDING  
-**Notes:** Verify console output from mock server shows the registration and result POSTs.
+**Notes:** Not executed here (no mock server running in this environment). When run, verify console output from mock server shows registration and result POSTs.
 
 ---
 
@@ -89,7 +89,7 @@ ansible-playbook flow_ara.yml -e "ara_enabled=true ara_api_base_url=http://127.0
 ```
 
 **Status:** PENDING  
-**Notes:** Expect task failure on POST due to 401.
+**Notes:** Not executed here (no mock server running in this environment). Expect task failure on POST due to 401.
 
 ---
 
@@ -97,7 +97,7 @@ ansible-playbook flow_ara.yml -e "ara_enabled=true ara_api_base_url=http://127.0
 
 | Backlog Item | Total Tests | Passed | Failed | Status |
 |--------------|-------------|--------|--------|--------|
-| GHC-13       | 3           | 0      | 0      | pending |
+| GHC-13       | 3           | 0      | 0      | pending (not run in env) |
 
 ## Overall Test Results
 
@@ -108,4 +108,4 @@ ansible-playbook flow_ara.yml -e "ara_enabled=true ara_api_base_url=http://127.0
 
 ## Test Execution Notes
 
-Tests not executed in this environment; requires running mock or real Ara endpoint locally.
+Tests not executed in this environment; requires running mock or real Ara endpoint and GitHub credentials for full flow.
