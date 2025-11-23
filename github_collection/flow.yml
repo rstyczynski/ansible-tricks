@@ -45,7 +45,7 @@
     commit_message: "test: verify ansible collection workflow"
     pr_title: "Test Collection Workflow"
     pr_body: "Automated test to verify rstyczynski.github collection end-to-end workflow"
-    pr_comment: "/approved (auto)"
+    pr_comment: "/ping"
     arg_pr_comment_barrier_patterns:
       - "/approved"
     arg_pr_comment_barrier_timeout: 300
