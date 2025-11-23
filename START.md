@@ -1,7 +1,7 @@
 # Start
 
-Work on this directory / project as main goal using agentic instructions and files from RUPStrikesBack project. In this mode all instructions, rules, etc. All other that purely project artifacts are taken from RUPStrikesBack.
+Work on this directory / project as main goal, by using agentic instructions and files from RUPStrikesBack project.
 
-@/Users/rstyczynski/projects/demo1/RUPStrikesBack/.claude/commands/rup-manager.md 
+What have to be done is defined in `backlog.md` with iterations defined in `plan.md`.
 
-
+How to proceed - all instructions, rules, etc. are taken from RUPStrikesBack. Checkout RUPStrikesBack `https://github.com/rstyczynski/RUPStrikesBack.git` and run `@.claude/commands/rup-manager.md`.

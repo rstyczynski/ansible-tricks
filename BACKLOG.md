@@ -79,8 +79,71 @@ Generate HTML documentation site for the entire collection using `antsibull-docs
 
 ### GHC-7. Roles uses argument specification at meta
 
-Make sure that all roles use argument specification at meta directory. Do not keep argument specification for rules inline. Use `ansible.builtin.validate_argument_spec` module with spec taken from meta directory.
+Make sure that all roles use argument specification at meta directory. Do not keep argument specification for rules inline, having them in meta directory. Use `ansible.builtin.validate_argument_spec` module with spec taken from meta directory.
+
+```
+- name: "Branch: Validate arguments"
+  ansible.builtin.validate_argument_spec:
+    argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
+```
 
 ### GHC-8. GitHub Pages deploy workflow preparation
 
-Prepare and configure GitHub Pages deployment workflow for the collection documentation. The workflow should automatically build HTML documentation using `generate_html_docs.sh` and deploy it to GitHub Pages whenever changes are pushed to the main branch. Configure repository settings to enable GitHub Pages with GitHub Actions as the source. Update `galaxy.yml` documentation URL to point to the published GitHub Pages site. The workflow file is located at `.github/workflows/docs.yml` and should trigger on pushes to `master`/`main` branch when files in `github_collection/` directory change. Follow GitHub's official documentation for Pages deployment: <https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site>
+Prepare and configure GitHub Pages deployment workflow for the collection documentation. The workflow should automatically build HTML documentation using `generate_html_docs.sh` and deploy it to GitHub Pages whenever changes are pushed to the main branch. Configure repository settings to enable GitHub Pages with GitHub Actions as the source. 
+
+Update `galaxy.yml` documentation URL to point to the published GitHub Pages site. The workflow file is located at `.github/workflows/docs.yml` and should trigger on pushes to `master`/`main` branch when files in `github_collection/` directory change. 
+
+Follow GitHub's official documentation for Pages deployment: <https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site>
+
+### GHC-9. GitHub TOKEN is removed as soon as it's possible from facts.
+
+GitHub token taken from netrc file is a secret accessible only for login time. On a file system netrc file is protected with 600 access rights, and the same pattern must be seen in GitHub Collection i.e. TOKEN may never leave very specific context.
+
+Strict requirements is to remove it from exposed outputs, and keep in facts as short time as possible.
+
+### GHC-10. gh assumes authentication is in place
+
+It's not required to additionally control authentication status with `github_precheck_gh_auth_status` variable. It may be keeps in exposed variables, however GitHub Collection should never explicitly use it, as it's clearly not required. gh CLI will react in its way on improper authentication context. Remove all precheck variable checks from all the roles e.g.
+
+```
+- name: "PR Status: Fail if gh CLI is not authenticated"
+ ansible.builtin.fail:
+    msg: "GitHub CLI is not authenticated. Please run: gh auth login"
+ when: pr_status_check_gh_version.rc == 0 and pr_status_check_gh_auth_status.rc != 0
+```
+
+### GHC-11. Precheck role halts task flow in case of missing dependencies
+
+Precheck role set some output values, but no other role uses it on this stage. Intention  of precheck is to halt processing with error in case of missing dependencies, not to expose variables for further use. Remove all instances of using precheck outputs by other role e.g. ` github_auth_gh_version`.
+
+### GHC-12. Barrier on a comment
+
+Role waits for a comments to release continuation of the work. Expected comment is defined as regexp, jinja, anything else whatever will make expected comment definition flexible using regular Ansible capabilities. Custom module is not permitted; just pure Ansible / Jinja2 features.
+
+It's expected that role will take at least following arguments:
+
+1. pattern list to release operation
+2. timeout waiting for comment
+3. pooling interval with default value of 5 seconds
+4. latest comment / all comments
+
+### GHC-13. Ara integration
+
+Playbook emits task level audit events to Ara server trough REST interface for remote traceability and audit log. The play is identified by unique identifier that is provided or when not available gets UUID.
+
+Ara server runs in the network and is accessible via REST API. Authentication to Ara is performed via token if Ara supports it. If not propose authentication method.
+
+Use bests practices and general architecture from Ara http://ara.recordsansible.org
+
+### GHC-14. Long running task
+
+Prepare new collection: ansible with support for long running tasks. Use already available task with async, storing job identifier for further use. Job identifier is stored in a map next to host, playbook name, and play identifier (look at GHC-13) flushed to persistent storage. Potential option is to use Ara server as persistence for this, if it's possible to easily get value from Ara REST API for a given search pattern. Persistence is configurable - may be ara, local file system, object storage.
+
+Goal is to be able to exit the playbook. Start the play after some time, and see task in progress or completed.
+
+Test case must cover:
+
+1. controller playbook wait for result
+2. controller playbook exit after invoke of the task
+3. controller playbook return with host and job_id to check result. finish cleanly when task is done
+4. managed host crashed and lost the process. controller handles it.

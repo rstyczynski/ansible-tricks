@@ -37,8 +37,27 @@ Backlog Items:
 
 ## Sprint 5 - Role argument specification fix
 
-Status: Progress
+Status: Done
 
 Backlog Items:
 
 * GHC-7. Roles uses argument specification at meta
+
+## Sprint 6 - Security cleanup
+
+Status: Done
+Backlog Items: GHC-9, GHC-10, GHC-11.
+
+## Sprint 7 - Comment barrier role
+
+Status: Progress
+
+Role is concluded with Molecule tests. flow.yml is extended by this step. One of releasing patterns is /approved.
+
+Backlog Items: GHC-12
+
+## Sprint 8 - Ara integration
+
+Status: Planned
+
+Backlog Items: GHC-13
