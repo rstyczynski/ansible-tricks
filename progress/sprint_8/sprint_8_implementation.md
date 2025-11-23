@@ -6,7 +6,7 @@
 **Backlog Items:**  
 - GHC-13: under_construction  
 
-Implemented Ara integration via handlers in `github_collection/flow.yml`. Added opt-in configuration variables, run-id generation, handler-based registration/event emission, and success/failure notifications. Integration defaults to disabled to avoid breaking existing flows.
+Implemented Ara integration via handlers in `github_collection/flow_ara.yml` (dedicated Ara-enabled flow). `flow.yml` remains unchanged for non-Ara use. Added opt-in configuration variables, run-id generation, handler-based registration/event emission, and success/failure notifications. Integration defaults to disabled in the Ara flow to avoid breaking existing flows.
 
 ## GHC-13. Ara integration
 
@@ -36,7 +36,7 @@ Implemented according to approved handler-based design referencing Ara docs; use
 
 | Artifact | Purpose | Status | Tested |
 |----------|---------|--------|--------|
-| github_collection/flow.yml | Ara vars, run-id generation, event notifications, handlers for Ara REST | Complete | Not run |
+| github_collection/flow_ara.yml | Ara vars, run-id generation, event notifications, handlers for Ara REST | Complete | Not run |
 
 ### Testing Results
 
@@ -62,15 +62,15 @@ Flow can emit Ara events via handlers to an Ara API server when `ara_enabled` is
 
 #### Usage
 
-**Enable Ara telemetry with custom endpoint:**
+**Enable Ara telemetry with custom endpoint (Ara flow):**
 ```bash
-ansible-playbook github_collection/flow.yml \
+ansible-playbook github_collection/flow_ara.yml \
   -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:8000 ara_api_token=YOUR_TOKEN ara_verify_ssl=false"
 ```
 
 **Enable with mock server and strict failure on errors:**
 ```bash
-ansible-playbook github_collection/flow.yml \
+ansible-playbook github_collection/flow_ara.yml \
   -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:5000 ara_fail_on_error=true ara_verify_ssl=false"
 ```
 

@@ -56,7 +56,7 @@ PY
 
 # In another shell, run the flow with Ara enabled
 cd github_collection
-ansible-playbook flow.yml -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:5000 ara_verify_ssl=false"
+ansible-playbook flow_ara.yml -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:5000 ara_verify_ssl=false"
 ```
 
 **Status:** PENDING  
@@ -85,7 +85,7 @@ PY
 
 # Run flow with strict failure on Ara errors
 cd github_collection
-ansible-playbook flow.yml -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:5001 ara_fail_on_error=true ara_verify_ssl=false"
+ansible-playbook flow_ara.yml -e "ara_enabled=true ara_api_base_url=http://127.0.0.1:5001 ara_fail_on_error=true ara_verify_ssl=false"
 ```
 
 **Status:** PENDING  

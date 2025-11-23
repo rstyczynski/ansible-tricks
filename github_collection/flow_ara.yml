@@ -49,8 +49,39 @@
     pr_pull_latest: true
     branch_delete: true
     delete_branch: "test-collection-e2e-final"
+    ara_enabled: false
+    ara_api_base_url: "http://127.0.0.1:8000"
+    ara_api_token: ""
+    ara_verify_ssl: true
+    ara_fail_on_error: false
+    ara_run_id: ""
+    ara_default_metadata: {}
+    ara_run_name: "github_collection_flow"
 
   tasks:
+    - name: Generate Ara run identifier when enabled
+      ansible.builtin.set_fact:
+        ara_run_id: "{{ ara_run_id | default(lookup('ansible.builtin.password', '/dev/null length=32 chars=hex'), true) }}"
+      when: ara_enabled | bool
+
+    - name: Queue Ara run registration
+      ansible.builtin.set_fact:
+        ara_event_payload:
+          task: "register_run"
+          status: "running"
+          host: "{{ inventory_hostname }}"
+          details:
+            message: "Registering Ara play run"
+            metadata: "{{ ara_default_metadata }}"
+      when: ara_enabled | bool
+      notify:
+        - ara_register_run
+        - ara_send_event
+
+    - name: Flush Ara registration handler early
+      ansible.builtin.meta: flush_handlers
+      when: ara_enabled | bool
+
     - name: Execute GitHub workflow
       block:
         - name: Precheck
@@ -186,6 +217,17 @@
           ansible.builtin.debug:
             msg: "Workflow completed successfully"
 
+        - name: Notify Ara success
+          ansible.builtin.set_fact:
+            ara_event_payload:
+              task: "workflow_complete"
+              status: "ok"
+              host: "{{ inventory_hostname }}"
+              details:
+                message: "Workflow completed successfully"
+          when: ara_enabled | bool
+          notify: ara_send_event
+
       rescue:
         - name: "Display error message"
           ansible.builtin.debug:
@@ -194,6 +236,17 @@
         - name: Set failure flag
           ansible.builtin.set_fact:
             workflow_failed: true
+
+        - name: Notify Ara failure
+          ansible.builtin.set_fact:
+            ara_event_payload:
+              task: "workflow_failed"
+              status: "failed"
+              host: "{{ inventory_hostname }}"
+              details:
+                message: "Workflow failed, see logs"
+          when: ara_enabled | bool
+          notify: ara_send_event
 
       always:
         - name: Logout from GitHub CLI
@@ -207,3 +260,48 @@
           ansible.builtin.fail:
             msg: "Workflow failed - check errors above"
           when: workflow_failed is defined and workflow_failed | bool
+
+  handlers:
+    - name: ara_register_run
+      ansible.builtin.uri:
+        url: "{{ ara_api_base_url | regex_replace('/+$', '') }}/api/v1/playbooks/"
+        method: POST
+        headers: "{{ ara_api_token | default('') | length > 0 | ternary({'Authorization': 'Bearer ' ~ ara_api_token}, {}) }}"
+        body_format: json
+        body:
+          identifier: "{{ ara_run_id }}"
+          name: "{{ ara_run_name }}"
+          status: "running"
+          metadata: "{{ ara_default_metadata }}"
+        validate_certs: "{{ ara_verify_ssl | bool }}"
+        timeout: 15
+      when: ara_enabled | bool
+      register: ara_register_run_result
+      retries: 2
+      delay: 2
+      until: ara_register_run_result.status | default(0) < 400
+      failed_when: (ara_fail_on_error | bool) and (ara_register_run_result.status | default(0) >= 400)
+      no_log: "{{ ara_api_token | default('') | length > 0 }}"
+
+    - name: ara_send_event
+      ansible.builtin.uri:
+        url: "{{ ara_api_base_url | regex_replace('/+$', '') }}/api/v1/results/"
+        method: POST
+        headers: "{{ ara_api_token | default('') | length > 0 | ternary({'Authorization': 'Bearer ' ~ ara_api_token}, {}) }}"
+        body_format: json
+        body:
+          playbook: "{{ ara_run_id }}"
+          task: "{{ ara_event_payload.task }}"
+          status: "{{ ara_event_payload.status }}"
+          host: "{{ ara_event_payload.host | default('localhost') }}"
+          duration: "{{ ara_event_payload.duration | default(0) }}"
+          details: "{{ ara_event_payload.details | default({}) }}"
+        validate_certs: "{{ ara_verify_ssl | bool }}"
+        timeout: 15
+      when: ara_enabled | bool and ara_event_payload is defined
+      register: ara_send_event_result
+      retries: 2
+      delay: 2
+      until: ara_send_event_result.status | default(0) < 400
+      failed_when: (ara_fail_on_error | bool) and (ara_send_event_result.status | default(0) >= 400)
+      no_log: "{{ ara_api_token | default('') | length > 0 }}"
