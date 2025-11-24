@@ -2,6 +2,8 @@
 
 Ansible examples and GitHub Collection development project.
 
+![GitHub end 2 end flow](doc/github_flow.png)
+
 ## Key Features
 
 ### GitHub Collection (rstyczynski.github)
