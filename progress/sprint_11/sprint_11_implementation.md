@@ -62,6 +62,173 @@ Successfully implemented GHC-15 (Long running task) with **minimal persistence r
 - User feedback: "Use regular `task` capabilities! Roles only for job_id persistence"
 - Corrected: Scrapped over-complex roles, created minimal save/load roles
 
+## How Each Scenario Works
+
+### Scenario 1: Basic Idempotent Pattern
+
+**File:** `scenario_01_idempotent_basic.yml`
+
+**The Idempotent Pattern Explained:**
+
+```yaml
+# STEP 1: Try to load existing job
+- include_role: async_job_load
+  # Returns: async_job_load_found (true/false)
+
+# STEP 2: Start ONLY if not found
+- shell: "long_command"
+  async: 60
+  poll: 0
+  when: not async_job_load_found  # Conditional execution!
+
+# STEP 3: Save if just started
+- include_role: async_job_save
+  when: not async_job_load_found
+
+# STEP 4: Check status (native async_status)
+- async_status:
+    jid: "{{ async_job_load_ansible_job_id if async_job_load_found else new_task.ansible_job_id }}"
+```
+
+**Why This Works:**
+
+1. **First Run:** Job not found → starts task → saves job_id → checks status (RUNNING)
+2. **Second Run:** Job found → skips start → uses loaded job_id → checks status (RUNNING or DONE)
+3. **Third Run:** Job found → skips start → checks status (DONE)
+
+**Key Insight:** Named jobs enable true idempotency - same playbook, different behavior based on state.
+
+### Scenario 2: Parameterized Jobs
+
+**File:** `scenario_02_parameterized.yml`
+
+**How Parameters Work:**
+
+```yaml
+vars:
+  job_name: "{{ cli_job_name | default('default_job1') }}"
+  job_command: "{{ cli_command | default('for i in {1..12}; do...') }}"
+  job_timeout: "{{ cli_timeout | default(120) | int }}"
+```
+
+**Command Line Usage:**
+```bash
+ansible-playbook scenario_02_parameterized.yml \
+  -e "cli_job_name=batch_001" \
+  -e "cli_command='./process.sh'" \
+  -e "cli_timeout=3600"
+```
+
+**Why This Works:**
+
+1. **Variables Accept CLI Input:** `{{ cli_job_name | default('default_job1') }}`
+2. **Metadata Saved:** Command and timeout stored in job metadata
+3. **Resumable:** Same job_name loads same job across runs
+4. **Flexible:** Each parameter customizable per job
+
+**Use Case:** Running multiple jobs with different parameters, each tracked independently.
+
+### Scenario 3: Wait Loop with Retries
+
+**File:** `scenario_03_wait_loop.yml`
+
+**How Native Retry Mechanism Works:**
+
+```yaml
+- async_status:
+    jid: "{{ job_id }}"
+  register: result
+  until: result.finished    # Loop condition
+  retries: 15               # Maximum attempts
+  delay: 2                  # Seconds between attempts
+```
+
+**Execution Flow:**
+
+1. Check status → if not finished, wait 2 seconds
+2. Check again → if not finished, wait 2 seconds
+3. Repeat up to 15 times (30 seconds total)
+4. If finished → continue
+5. If not finished after 15 retries → fail
+
+**Why This Works:**
+
+- **Ansible's Native Retry:** Built-in `until`/`retries`/`delay` keywords
+- **No Custom Logic:** Standard Ansible behavior
+- **Blocking Wait:** Playbook waits for completion before continuing
+
+**Use Case:** Jobs that must complete before next step (blocking wait).
+
+### Scenario 4: Crash Detection
+
+**File:** `scenario_04_crash_detection.yml`
+
+**How Crash Detection Works:**
+
+**Ansible's Async Wrapper Magic:**
+
+1. **Normal Execution:**
+   ```
+   Your command → Ansible wrapper → Background process
+   Wrapper monitors → Writes to results file
+   ```
+
+2. **When Process Killed:**
+   ```bash
+   pkill -f "sleep 300"  # Sends SIGTERM (signal 15)
+   ```
+
+   The async wrapper:
+   - ✅ Catches the signal
+   - ✅ Records: `"finished": 1`, `"rc": -15`, `"failed": true`
+   - ✅ Writes to results file: `/Users/user/.ansible_async/<job_id>`
+   - ✅ Exits
+
+3. **Later Check:**
+   ```yaml
+   - async_status:
+       jid: "{{ job_id }}"
+   ```
+
+   Reads results file and returns:
+   ```json
+   {
+     "finished": 1,
+     "failed": true,
+     "rc": -15,
+     "msg": "non-zero return code"
+   }
+   ```
+
+**Detection Logic:**
+
+```yaml
+{% if crash_status.failed and 'could not find job' in msg %}
+  - CRASH DETECTED: Job record lost (host reboot/file deleted)
+{% elif crash_status.failed and crash_status.finished and rc != 0 %}
+  - KILLED/FAILED: Process terminated (signal/error, rc=-15)
+{% elif not crash_status.finished %}
+  - Job is still running
+{% else %}
+  - Job completed normally (rc=0)
+{% endif %}
+```
+
+**Two Types of "Crash":**
+
+| Type | Scenario | Detection | async_status Result |
+|------|----------|-----------|---------------------|
+| **Process Killed** | `pkill` or `kill -9` | `rc != 0` + `finished=1` | Returns failure with rc=-15 |
+| **System Crash** | Host reboot, disk full | `'could not find job'` | Can't read results file |
+
+**Why This Works:**
+
+- **Robust Wrapper:** Ansible's async wrapper catches signals before dying
+- **Persistent State:** Results file survives process termination
+- **Clear Detection:** Different error messages for different failure modes
+
+**Key Insight:** Ansible's async mechanism is more sophisticated than simple `nohup` - it actively monitors and records process lifecycle events.
+
 ## Code Artifacts
 
 | Artifact | Purpose | Status | Tested |
@@ -70,7 +237,10 @@ Successfully implemented GHC-15 (Long running task) with **minimal persistence r
 | README.md | Collection documentation | Complete | N/A |
 | async_job_save role | Save job_id to filesystem | Complete | Syntax ✓ |
 | async_job_load role | Load job_id from filesystem | Complete | Syntax ✓ |
-| long_running_flow.yml | Test playbook (4 scenarios) | Complete | Syntax ✓ |
+| scenario_01 | Idempotent pattern | Complete | Syntax ✓ |
+| scenario_02 | Parameterized jobs | Complete | Syntax ✓ |
+| scenario_03 | Wait loop with retries | Complete | Syntax ✓ |
+| scenario_04 | Crash detection | Complete | Syntax ✓ |
 
 ## Testing Results
 
@@ -198,11 +368,13 @@ playbook: .../long_running_flow.yml
 ## Next Steps
 
 **User Actions:**
-1. Execute functional tests: `ansible-playbook long_running_flow.yml --tags test1`
-2. Test exit/resume pattern: `--tags test2` then `--tags test3`
-3. Verify crash detection: `--tags test4_start`, kill process, `--tags test4_check`
+1. Test idempotent pattern: `ansible-playbook scenario_01_idempotent_basic.yml` (run multiple times)
+2. Test parameterized jobs: `ansible-playbook scenario_02_parameterized.yml -e "cli_job_name=test1"`
+3. Test wait loop: `ansible-playbook scenario_03_wait_loop.yml`
+4. Test crash detection: `ansible-playbook scenario_04_crash_detection.yml`, then `pkill -f "sleep 300"`, then run again
 
 **Future Enhancements** (not in scope):
 - Ara persistence backend
 - S3 persistence backend
 - Cleanup utility role
+- Job listing/query utilities
