@@ -1,0 +1,26 @@
+#SPDX-License-Identifier: MIT-0
+### REQUIRED
+namespace: rstyczynski
+name: ansible
+version: 1.0.0
+readme: README.md
+authors:
+  - rstyczynski <rstyczynski@users.noreply.github.com>
+
+### OPTIONAL but strongly recommended
+description: General-purpose Ansible utilities for operational automation
+license:
+  - MIT
+license_file: ''
+tags:
+  - ansible
+  - async
+  - utilities
+  - operations
+  - task-management
+dependencies: {}
+repository: https://github.com/rstyczynski/ansible-tricks
+documentation: https://github.com/rstyczynski/ansible-tricks/tree/master/ansible_collection
+homepage: https://github.com/rstyczynski/ansible-tricks
+issues: https://github.com/rstyczynski/ansible-tricks/issues
+build_ignore: []

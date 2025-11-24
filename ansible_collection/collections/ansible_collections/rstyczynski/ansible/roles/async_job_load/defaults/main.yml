@@ -1,0 +1,2 @@
+---
+async_job_load_state_dir: ".ansible_async_state"

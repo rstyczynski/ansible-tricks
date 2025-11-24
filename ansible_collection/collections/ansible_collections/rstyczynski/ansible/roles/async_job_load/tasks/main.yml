@@ -1,0 +1,21 @@
+---
+- name: "Load Job: Validate arguments"
+  ansible.builtin.validate_argument_spec:
+    argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
+
+- name: "Load Job: Read job state file"
+  ansible.builtin.slurp:
+    src: "{{ async_job_load_state_dir }}/{{ async_job_load_job_id }}.json"
+  register: async_job_load_state_raw
+  delegate_to: localhost
+
+- name: "Load Job: Parse job state"
+  ansible.builtin.set_fact:
+    async_job_load_state: "{{ async_job_load_state_raw.content | b64decode | from_json }}"
+
+- name: "Load Job: Set output variables"
+  ansible.builtin.set_fact:
+    async_job_load_ansible_job_id: "{{ async_job_load_state.ansible_job_id }}"
+    async_job_load_host: "{{ async_job_load_state.host }}"
+    async_job_load_job_name: "{{ async_job_load_state.job_name }}"
+    async_job_load_metadata: "{{ async_job_load_state.metadata }}"

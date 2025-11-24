@@ -1,0 +1,37 @@
+---
+argument_specs:
+  main:
+    short_description: Load async job metadata from persistent storage
+
+    options:
+      # INPUTS
+      async_job_load_job_id:
+        description: "Job ID from async_job_save"
+        type: str
+        required: true
+
+      async_job_load_state_dir:
+        description: "Directory containing job state files"
+        type: str
+        default: ".ansible_async_state"
+
+      # OUTPUTS
+      async_job_load_ansible_job_id:
+        description: "[OUTPUT] Ansible job ID for use with async_status"
+        type: str
+        required: false
+
+      async_job_load_host:
+        description: "[OUTPUT] Target host where async task is running"
+        type: str
+        required: false
+
+      async_job_load_job_name:
+        description: "[OUTPUT] Human-readable job name"
+        type: str
+        required: false
+
+      async_job_load_metadata:
+        description: "[OUTPUT] Job metadata dictionary"
+        type: dict
+        required: false

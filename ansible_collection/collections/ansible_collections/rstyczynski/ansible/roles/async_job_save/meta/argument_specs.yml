@@ -1,0 +1,43 @@
+---
+argument_specs:
+  main:
+    short_description: Save async job metadata to persistent storage
+
+    options:
+      # INPUTS
+      async_job_save_ansible_job_id:
+        description: "Ansible job ID from async task (from register variable)"
+        type: str
+        required: true
+
+      async_job_save_host:
+        description: "Target host where async task is running"
+        type: str
+        required: true
+
+      async_job_save_job_name:
+        description: "Human-readable name for this job"
+        type: str
+        required: true
+
+      async_job_save_state_dir:
+        description: "Directory to store job state files"
+        type: str
+        default: ".ansible_async_state"
+
+      async_job_save_metadata:
+        description: "Optional metadata dictionary for job tagging"
+        type: dict
+        required: false
+        default: {}
+
+      # OUTPUTS
+      async_job_save_job_id:
+        description: "[OUTPUT] Unique job identifier for this saved job"
+        type: str
+        required: false
+
+      async_job_save_state_file:
+        description: "[OUTPUT] Full path to job state file"
+        type: str
+        required: false
