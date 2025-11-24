@@ -3,9 +3,13 @@
   ansible.builtin.validate_argument_spec:
     argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
+- name: "Load Job: Set host filter to current host if not specified"
+  ansible.builtin.set_fact:
+    async_job_load_host_internal: "{{ async_job_load_host_filter | default(inventory_hostname) }}"
+
 - name: "Load Job: Check if job state file exists"
   ansible.builtin.stat:
-    path: "{{ async_job_load_state_dir }}/{{ async_job_load_job_name }}.json"
+    path: "{{ async_job_load_state_dir }}/{{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json"
   register: async_job_load_stat
   delegate_to: localhost
 
@@ -16,7 +20,7 @@
 
 - name: "Load Job: Read job state file if exists"
   ansible.builtin.slurp:
-    src: "{{ async_job_load_state_dir }}/{{ async_job_load_job_name }}.json"
+    src: "{{ async_job_load_state_dir }}/{{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json"
   register: async_job_load_state_raw
   delegate_to: localhost
   when: async_job_load_stat.stat.exists

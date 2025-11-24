@@ -159,8 +159,21 @@ ansible-playbook scenario_04_crash_detection.yml
 
 ## State Files
 
-Jobs saved as: `.ansible_async_state/<job_name>.json`
+Jobs organized by hostname: `.ansible_async_state/<hostname>/<job_name>.json`
 
+**Structure:**
+```
+.ansible_async_state/
+├── localhost/
+│   ├── my_data_processing.json
+│   └── backup_job.json
+├── web01.example.com/
+│   └── deploy_task.json
+└── db01.example.com/
+    └── migration_job.json
+```
+
+**File Content:**
 ```json
 {
   "job_name": "my_data_processing",
@@ -170,6 +183,8 @@ Jobs saved as: `.ansible_async_state/<job_name>.json`
   "metadata": {}
 }
 ```
+
+**Multi-Host Support:** Each managed host gets its own directory, preventing job name collisions across hosts.
 
 ## Requirements
 

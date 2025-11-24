@@ -3,13 +3,12 @@
   ansible.builtin.validate_argument_spec:
     argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
-- name: "Save Job: Ensure state directory exists"
+- name: "Save Job: Ensure state directory exists for host"
   ansible.builtin.file:
-    path: "{{ async_job_save_state_dir }}"
+    path: "{{ async_job_save_state_dir }}/{{ async_job_save_host }}"
     state: directory
     mode: '0700'
   delegate_to: localhost
-  run_once: true
 
 - name: "Save Job: Write job state to file by name"
   ansible.builtin.copy:
@@ -21,10 +20,10 @@
         "save_time": "{{ ansible_date_time.iso8601 }}",
         "metadata": {{ async_job_save_metadata | to_json }}
       }
-    dest: "{{ async_job_save_state_dir }}/{{ async_job_save_job_name }}.json"
+    dest: "{{ async_job_save_state_dir }}/{{ async_job_save_host }}/{{ async_job_save_job_name }}.json"
     mode: '0600'
   delegate_to: localhost
 
 - name: "Save Job: Set state file path"
   ansible.builtin.set_fact:
-    async_job_save_state_file: "{{ async_job_save_state_dir }}/{{ async_job_save_job_name }}.json"
+    async_job_save_state_file: "{{ async_job_save_state_dir }}/{{ async_job_save_host }}/{{ async_job_save_job_name }}.json"

@@ -10,6 +10,11 @@ argument_specs:
         type: str
         required: true
 
+      async_job_load_host_filter:
+        description: "Host to load job from (defaults to inventory_hostname)"
+        type: str
+        required: false
+
       async_job_load_state_dir:
         description: "Directory containing job state files"
         type: str

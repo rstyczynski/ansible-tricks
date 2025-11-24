@@ -1,0 +1,2 @@
+# Ansible async job state files (runtime data)
+.ansible_async_state/
