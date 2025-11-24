@@ -80,7 +80,7 @@ Backlog Items: CR-1, CR-2, CR-2, CR-4.
 
 ## Sprint 11 - Handling long running task
 
-Status: Progress
+Status: Done
 Mode: YOLO
 
 Backlog Items:
