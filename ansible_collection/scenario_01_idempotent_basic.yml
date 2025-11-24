@@ -1,0 +1,73 @@
+---
+# IDEMPOTENT PATTERN: Run this playbook multiple times with same job_name
+# First run: Starts task and saves job_id
+# Later runs: Loads existing job_id and checks status
+
+- name: Idempotent long-running task
+  hosts: localhost
+  gather_facts: true
+  vars:
+    job_name: "my_long_task"  # Change this to run different jobs
+  tasks:
+    # STEP 1: Try to load existing job
+    - name: Try to load existing job by name
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_load
+      vars:
+        async_job_load_job_name: "{{ job_name }}"
+
+    - name: Display if job was found
+      ansible.builtin.debug:
+        msg: "Job '{{ job_name }}' {{ 'FOUND - will check status' if async_job_load_found else 'NOT FOUND - will start new task' }}"
+
+    # STEP 2: Start task ONLY if not found
+    - name: Start long-running task (only if not exists)
+      ansible.builtin.shell: "for i in {1..12}; do echo \"Progress: iteration $i at $(date)\"; sleep 5; done; echo 'Task completed'"
+      async: 90
+      poll: 0
+      register: new_task
+      when: not async_job_load_found
+
+    # STEP 3: Save job if just started
+    - name: Save job metadata (only if just started)
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_save
+      vars:
+        async_job_save_job_name: "{{ job_name }}"
+        async_job_save_ansible_job_id: "{{ new_task.ansible_job_id }}"
+        async_job_save_host: "{{ inventory_hostname }}"
+      when: not async_job_load_found
+
+    # STEP 4: Check status (works for both new and existing jobs)
+    - name: Check task status using native async_status
+      ansible.builtin.async_status:
+        jid: "{{ async_job_load_ansible_job_id if async_job_load_found else new_task.ansible_job_id }}"
+      register: job_status
+      ignore_errors: true
+
+    # STEP 5: Display results
+    - name: Display job status
+      ansible.builtin.debug:
+        msg: |
+          Job: {{ job_name }}
+          Status: {{ 'COMPLETED' if job_status.finished | default(false) else 'RUNNING' }}
+          {% if job_status.finished | default(false) %}
+          Output: {{ job_status.stdout | default('No output') }}
+          Return Code: {{ job_status.rc }}
+          {% else %}
+          Progress: Task still running, run playbook again to check
+          {% endif %}
+          {% if job_status.failed | default(false) %}
+          Error: {{ job_status.msg | default('Unknown error') }}
+          {% endif %}
+
+    - name: Next steps
+      ansible.builtin.debug:
+        msg: |
+          {% if not job_status.finished | default(false) %}
+          → Run the same playbook again to check status:
+            ansible-playbook scenario_01_idempotent_basic.yml
+          {% else %}
+          → Task is complete! Run with different job_name to start another:
+            ansible-playbook scenario_01_idempotent_basic.yml -e "job_name=another_task"
+          {% endif %}

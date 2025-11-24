@@ -22,8 +22,8 @@
 
     # STEP 2: Start task ONLY if not found
     - name: Start long-running task (only if not exists)
-      ansible.builtin.shell: "sleep 30 && echo 'Task completed at' && date"
-      async: 60
+      ansible.builtin.shell: "for i in {1..12}; do echo \"Progress: iteration $i at $(date)\"; sleep 5; done; echo 'Task completed'"
+      async: 90
       poll: 0
       register: new_task
       when: not async_job_load_found
@@ -133,8 +133,8 @@
             async_job_load_job_name: "{{ job_name }}"
 
         - name: Start if not found
-          ansible.builtin.shell: "sleep 20 && echo 'Done'"
-          async: 60
+          ansible.builtin.shell: "for i in {1..12}; do echo \"Progress: iteration $i at $(date)\"; sleep 5; done; echo 'Done'"
+          async: 90
           poll: 0
           register: new_job
           when: not async_job_load_found

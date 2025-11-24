@@ -1,0 +1,64 @@
+---
+# Crash detection example - demonstrates how to detect if an async job was killed
+# Usage:
+#   1. Run this playbook to start a long-running task
+#   2. Kill the process manually: pkill -f "sleep 300"
+#   3. Run the playbook again to see crash detection
+
+- name: Demonstrate crash detection
+  hosts: localhost
+  gather_facts: true
+  vars:
+    job_name: "crash_test_job"
+  tasks:
+    - name: Load or start task
+      block:
+        - name: Try load
+          ansible.builtin.include_role:
+            name: rstyczynski.ansible.async_job_load
+          vars:
+            async_job_load_job_name: "{{ job_name }}"
+
+        - name: Start long task (that you'll kill manually)
+          ansible.builtin.shell: "sleep 300"
+          async: 600
+          poll: 0
+          register: crash_job
+          when: not async_job_load_found
+
+        - name: Save job
+          ansible.builtin.include_role:
+            name: rstyczynski.ansible.async_job_save
+          vars:
+            async_job_save_job_name: "{{ job_name }}"
+            async_job_save_ansible_job_id: "{{ crash_job.ansible_job_id }}"
+            async_job_save_host: "{{ inventory_hostname }}"
+          when: not async_job_load_found
+
+        - name: Instructions if just started
+          ansible.builtin.debug:
+            msg: |
+              Task started! To simulate crash:
+              1. Find and kill the sleep process: pkill -f "sleep 300"
+              2. Run this playbook again with same job_name
+          when: not async_job_load_found
+
+    - name: Check status (will detect crash)
+      ansible.builtin.async_status:
+        jid: "{{ async_job_load_ansible_job_id if async_job_load_found else crash_job.ansible_job_id }}"
+      register: crash_status
+      ignore_errors: true
+
+    - name: Display crash detection
+      ansible.builtin.debug:
+        msg: |
+          Status Check Results:
+          - Failed: {{ crash_status.failed | default(false) }}
+          - Finished: {{ crash_status.finished | default(false) }}
+          {% if crash_status.failed and 'could not find job' in (crash_status.msg | default('')) %}
+          - CRASH DETECTED: Job was lost (process killed or host rebooted)
+          {% elif not crash_status.finished %}
+          - Job is still running
+          {% else %}
+          - Job completed normally
+          {% endif %}

@@ -120,29 +120,44 @@ ansible-playbook playbook.yml -e "job_name=export_2024"
 ansible-playbook playbook.yml -e "job_name=export_2024"
 ```
 
-## Test Examples
+## Test Scenarios
 
+Four complete examples demonstrating different usage patterns:
+
+**Scenario 1: Basic Idempotent Pattern**
 ```bash
-# Idempotent pattern (run multiple times)
-ansible-playbook long_running_flow.yml
+# Run multiple times - first run starts, later runs check status
+ansible-playbook scenario_01_idempotent_basic.yml
 
 # With custom job name
-ansible-playbook long_running_flow.yml -e "job_name=my_job"
+ansible-playbook scenario_01_idempotent_basic.yml -e "job_name=my_job"
+```
 
-# Parameterized example
-ansible-playbook long_running_flow.yml --tags parametrized \
+**Scenario 2: Parameterized Jobs**
+```bash
+# Accept all parameters from command line
+ansible-playbook scenario_02_parameterized.yml \
   -e "cli_job_name=batch_001" \
   -e "cli_command='./process.sh'" \
   -e "cli_timeout=3600"
-
-# Wait loop example
-ansible-playbook long_running_flow.yml --tags wait_loop
-
-# Crash detection
-ansible-playbook long_running_flow.yml --tags crash_test
-# (kill process: pkill -f "sleep 300")
-ansible-playbook long_running_flow.yml --tags crash_test
 ```
+
+**Scenario 3: Wait Loop with Retries**
+```bash
+# Automatically wait for completion using native async_status retries
+ansible-playbook scenario_03_wait_loop.yml
+```
+
+**Scenario 4: Crash Detection**
+```bash
+# Start long-running task
+ansible-playbook scenario_04_crash_detection.yml
+# Kill the process manually: pkill -f "sleep 300"
+# Run again to detect crash
+ansible-playbook scenario_04_crash_detection.yml
+```
+
+**Legacy**: All scenarios also available in `long_running_flow.yml` with tags.
 
 ## State Files
 

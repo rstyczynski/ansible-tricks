@@ -1,0 +1,49 @@
+---
+# Parameterized idempotent task - accepts job_name, command, and timeout from CLI
+# Usage:
+#   ansible-playbook scenario_02_parameterized.yml \
+#     -e "cli_job_name=batch_001" \
+#     -e "cli_command='./process.sh'" \
+#     -e "cli_timeout=3600"
+
+- name: Parameterized idempotent task
+  hosts: localhost
+  gather_facts: true
+  vars:
+    job_name: "{{ cli_job_name | default('default_job') }}"
+    job_command: "{{ cli_command | default('sleep 60') }}"
+    job_timeout: "{{ cli_timeout | default(120) | int }}"
+  tasks:
+    - name: Load existing job
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_load
+      vars:
+        async_job_load_job_name: "{{ job_name }}"
+
+    - name: Start task if not found
+      ansible.builtin.shell: "{{ job_command }}"
+      async: "{{ job_timeout }}"
+      poll: 0
+      register: task_result
+      when: not async_job_load_found
+
+    - name: Save if just started
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_save
+      vars:
+        async_job_save_job_name: "{{ job_name }}"
+        async_job_save_ansible_job_id: "{{ task_result.ansible_job_id }}"
+        async_job_save_host: "{{ inventory_hostname }}"
+        async_job_save_metadata:
+          command: "{{ job_command }}"
+          timeout: "{{ job_timeout }}"
+      when: not async_job_load_found
+
+    - name: Check status
+      ansible.builtin.async_status:
+        jid: "{{ async_job_load_ansible_job_id if async_job_load_found else task_result.ansible_job_id }}"
+      register: status
+
+    - name: Show result
+      ansible.builtin.debug:
+        var: status
