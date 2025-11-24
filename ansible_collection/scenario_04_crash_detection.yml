@@ -48,6 +48,7 @@
         jid: "{{ async_job_load_ansible_job_id if async_job_load_found else crash_job.ansible_job_id }}"
       register: crash_status
       ignore_errors: true
+      changed_when: false  # Checking status is a read operation
 
     - name: Display crash detection
       ansible.builtin.debug:

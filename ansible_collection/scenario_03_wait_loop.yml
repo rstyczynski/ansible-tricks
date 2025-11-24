@@ -40,6 +40,7 @@
       retries: 15
       delay: 2
       ignore_errors: true
+      changed_when: false  # Checking status is a read operation
 
     - name: Display job status
       ansible.builtin.debug:

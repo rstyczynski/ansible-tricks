@@ -44,6 +44,7 @@
         jid: "{{ async_job_load_ansible_job_id if async_job_load_found else new_task.ansible_job_id }}"
       register: job_status
       ignore_errors: true
+      changed_when: false  # Checking status is a read operation
 
     # STEP 5: Display results
     - name: Display job status
