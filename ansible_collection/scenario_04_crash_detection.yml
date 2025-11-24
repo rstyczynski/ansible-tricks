@@ -52,9 +52,13 @@
     - name: Display crash detection
       ansible.builtin.debug:
         msg: |
+          Job: {{ job_name }}
           Status Check Results:
           - Failed: {{ crash_status.failed | default(false) }}
           - Finished: {{ crash_status.finished | default(false) }}
+          {% if crash_status.finished | default(false) %}
+          - Return Code: {{ crash_status.rc | default('N/A') }}
+          {% endif %}
           {% if crash_status.failed and 'could not find job' in (crash_status.msg | default('')) %}
           - CRASH DETECTED: Job was lost (process killed or host rebooted)
           {% elif not crash_status.finished %}
@@ -62,3 +66,13 @@
           {% else %}
           - Job completed normally
           {% endif %}
+
+    - name: Display stdout output
+      ansible.builtin.debug:
+        msg: "{{ crash_status.stdout_lines | default(['(no output)']) }}"
+      when: crash_status.stdout is defined
+
+    - name: Display stderr output
+      ansible.builtin.debug:
+        msg: "{{ crash_status.stderr_lines | default(['(no errors)']) }}"
+      when: crash_status.stderr is defined and crash_status.stderr | length > 0

@@ -7,7 +7,7 @@
   hosts: localhost
   gather_facts: true
   vars:
-    job_name: "my_long_task"  # Change this to run different jobs
+    job_name: "my_long_task1"  # Change this to run different jobs
   tasks:
     # STEP 1: Try to load existing job
     - name: Try to load existing job by name

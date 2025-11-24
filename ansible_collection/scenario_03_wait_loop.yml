@@ -39,7 +39,26 @@
       until: result.finished
       retries: 15
       delay: 2
+      ignore_errors: true
 
-    - name: Display final result
+    - name: Display job status
       ansible.builtin.debug:
-        msg: "Task completed: {{ result.stdout }}"
+        msg: |
+          Job: {{ job_name }}
+          Status: {{ 'COMPLETED' if result.finished | default(false) else 'RUNNING' }}
+          {% if result.finished | default(false) %}
+          Return Code: {{ result.rc | default('N/A') }}
+          {% endif %}
+          {% if result.failed | default(false) %}
+          Error: {{ result.msg | default('Unknown error') }}
+          {% endif %}
+
+    - name: Display stdout output
+      ansible.builtin.debug:
+        msg: "{{ result.stdout_lines | default(['(no output)']) }}"
+      when: result.stdout is defined
+
+    - name: Display stderr output
+      ansible.builtin.debug:
+        msg: "{{ result.stderr_lines | default(['(no errors)']) }}"
+      when: result.stderr is defined and result.stderr | length > 0

@@ -157,8 +157,6 @@ ansible-playbook scenario_04_crash_detection.yml
 ansible-playbook scenario_04_crash_detection.yml
 ```
 
-**Legacy**: All scenarios also available in `long_running_flow.yml` with tags.
-
 ## State Files
 
 Jobs saved as: `.ansible_async_state/<job_name>.json`

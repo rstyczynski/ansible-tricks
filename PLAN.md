@@ -73,7 +73,16 @@ Backlog Items: GHC-14
 
 ## Sprint 10 - Bug fixes, and small adjustments
 
-Status: Progress
+Status: Done
 Mode: YOLO
 
 Backlog Items: CR-1, CR-2, CR-2, CR-4.
+
+## Sprint 11 - Handling long running task
+
+Status: Progress
+Mode: YOLO
+
+Backlog Items:
+
+* GHC-15. Long running task

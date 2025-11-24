@@ -43,7 +43,28 @@
       ansible.builtin.async_status:
         jid: "{{ async_job_load_ansible_job_id if async_job_load_found else task_result.ansible_job_id }}"
       register: status
+      ignore_errors: true
 
-    - name: Show result
+    - name: Display job status
       ansible.builtin.debug:
-        var: status
+        msg: |
+          Job: {{ job_name }}
+          Command: {{ job_command }}
+          Timeout: {{ job_timeout }}s
+          Status: {{ 'COMPLETED' if status.finished | default(false) else 'RUNNING' }}
+          {% if status.finished | default(false) %}
+          Return Code: {{ status.rc | default('N/A') }}
+          {% endif %}
+          {% if status.failed | default(false) %}
+          Error: {{ status.msg | default('Unknown error') }}
+          {% endif %}
+
+    - name: Display stdout output
+      ansible.builtin.debug:
+        msg: "{{ status.stdout_lines | default(['(no output yet)']) }}"
+      when: status.stdout is defined
+
+    - name: Display stderr output
+      ansible.builtin.debug:
+        msg: "{{ status.stderr_lines | default(['(no errors)']) }}"
+      when: status.stderr is defined and status.stderr | length > 0

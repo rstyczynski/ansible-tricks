@@ -159,12 +159,28 @@ ansible-playbook -i hosts playbook.yaml \
 ```
 Source: https://ara.readthedocs.io/en/latest/ansible-plugins-and-use-cases.html#playbook-names-and-labels
 
+### GHC-14. Access ara records from remote host
 
-### GHC-14. Long running task
+Operator uses `curl` to get data from Ara database. Cooperate with developments from GHC-13 to trace playbook run via `curl`. Operator knows identifier used to run the play. Keep all in ./ara directory
 
-Prepare new collection: ansible with support for long running tasks. Use already available task with async, storing job identifier for further use. Job identifier is stored in a map next to host, playbook name, and play identifier (look at GHC-13) flushed to persistent storage. Potential option is to use Ara server as persistence for this, if it's possible to easily get value from Ara REST API for a given search pattern. Persistence is configurable - may be ara, local file system, object storage.
+### GHC-15. Long running task
 
-Goal is to be able to exit the playbook. Start the play after some time, and see task in progress or completed.
+Prepare new collection with ansible tools. In first step add role(s) supporting long running tasks.
+
+`rstyczynski.ansible`. Main `long_running_flow.yml` uses now roles from this collection. On this stage collection is kept locally in `./collections/ansible_collections` to be available for the playbook without any installation.
+
+|Item|Value|
+|---|---|
+|Collection FQCN|rstyczynski.ansible|
+|Product directory|$repo_root/ansible_collection|
+|Collection working directory|$repo_root/ansible_collection/collections/ansible_collections|
+|long_running_flow.yml location|$repo_root/ansible_collection/long_running_flow.yml|
+
+Do not reinvent what is available in Ansible - use already available `task` with `async`, storing job identifier for further use.
+
+Job identifier is stored in a map next to host, playbook name, and play identifier (look at GHC-13) flushed to persistent storage. Potential option is to use Ara server as persistence for this, if it's possible to easily get value from Ara REST API for a given search pattern. Persistence is configurable - may be ara, local file system, object storage.
+
+The goal is to be able to exit the playbook. Start the play after some time, and see task in progress or completed.
 
 Test case must cover:
 
@@ -172,10 +188,6 @@ Test case must cover:
 2. controller playbook exit after invoke of the task
 3. controller playbook return with host and job_id to check result. finish cleanly when task is done
 4. managed host crashed and lost the process. controller handles it.
-
-### GHC-14. Access ara records from remote host
-
-Operator uses `curl` to get data from Ara database. Cooperate with developments from GHC-13 to trace playbook run via `curl`. Operator knows identifier used to run the play. Keep all in ./ara directory
 
 ## Bug fixes
 
