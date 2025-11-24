@@ -1,29 +1,20 @@
 ---
+# Backend router for async_job_save role
+# Routes to appropriate backend implementation based on backend parameter
+
 - name: "Save Job: Validate arguments"
   ansible.builtin.validate_argument_spec:
     argument_spec: "{{ (lookup('file', role_path + '/meta/argument_specs.yml') | from_yaml).argument_specs.main.options }}"
 
-- name: "Save Job: Ensure state directory exists for host"
-  ansible.builtin.file:
-    path: "{{ async_job_save_state_dir }}/{{ async_job_save_host }}"
-    state: directory
-    mode: '0700'
-  delegate_to: localhost
+- name: "Save Job: Validate backend parameter"
+  ansible.builtin.fail:
+    msg: "Invalid backend '{{ async_job_save_backend }}'. Must be 'filesystem' or 'oci'."
+  when: async_job_save_backend not in ['filesystem', 'oci']
 
-- name: "Save Job: Write job state to file by name"
-  ansible.builtin.copy:
-    content: |
-      {
-        "job_name": "{{ async_job_save_job_name }}",
-        "host": "{{ async_job_save_host }}",
-        "ansible_job_id": "{{ async_job_save_ansible_job_id }}",
-        "save_time": "{{ ansible_date_time.iso8601 }}",
-        "metadata": {{ async_job_save_metadata | to_json }}
-      }
-    dest: "{{ async_job_save_state_dir }}/{{ async_job_save_host }}/{{ async_job_save_job_name }}.json"
-    mode: '0600'
-  delegate_to: localhost
+- name: "Save Job: Route to filesystem backend"
+  ansible.builtin.include_tasks: save_filesystem.yml
+  when: async_job_save_backend == 'filesystem'
 
-- name: "Save Job: Set state file path"
-  ansible.builtin.set_fact:
-    async_job_save_state_file: "{{ async_job_save_state_dir }}/{{ async_job_save_host }}/{{ async_job_save_job_name }}.json"
+- name: "Save Job: Route to OCI backend"
+  ansible.builtin.include_tasks: save_oci.yml
+  when: async_job_save_backend == 'oci'

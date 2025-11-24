@@ -1,0 +1,37 @@
+---
+# Filesystem backend implementation for async_job_load
+
+- name: "Load Job (FS): Set host filter to current host if not specified"
+  ansible.builtin.set_fact:
+    async_job_load_host_internal: "{{ async_job_load_host_filter | default(inventory_hostname) }}"
+
+- name: "Load Job (FS): Check if job state file exists"
+  ansible.builtin.stat:
+    path: "{{ async_job_load_state_dir }}/{{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json"
+  register: async_job_load_stat
+  delegate_to: localhost
+
+- name: "Load Job (FS): Set not found if file doesn't exist"
+  ansible.builtin.set_fact:
+    async_job_load_found: false
+  when: not async_job_load_stat.stat.exists
+
+- name: "Load Job (FS): Read job state file if exists"
+  ansible.builtin.slurp:
+    src: "{{ async_job_load_state_dir }}/{{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json"
+  register: async_job_load_state_raw
+  delegate_to: localhost
+  when: async_job_load_stat.stat.exists
+
+- name: "Load Job (FS): Parse job state if exists"
+  ansible.builtin.set_fact:
+    async_job_load_state: "{{ async_job_load_state_raw.content | b64decode | from_json }}"
+  when: async_job_load_stat.stat.exists
+
+- name: "Load Job (FS): Set output variables if found"
+  ansible.builtin.set_fact:
+    async_job_load_found: true
+    async_job_load_ansible_job_id: "{{ async_job_load_state.ansible_job_id }}"
+    async_job_load_host: "{{ async_job_load_state.host }}"
+    async_job_load_metadata: "{{ async_job_load_state.metadata }}"
+  when: async_job_load_stat.stat.exists

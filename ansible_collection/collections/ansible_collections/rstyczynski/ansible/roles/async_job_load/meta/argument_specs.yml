@@ -1,42 +1,68 @@
 ---
 argument_specs:
   main:
-    short_description: Load async job metadata by name (fails gracefully if not exists)
+    short_description: Load async job metadata by name for idempotent retrieval (filesystem or OCI backend)
 
     options:
-      # INPUTS
+      # INPUTS - Common
       async_job_load_job_name:
-        description: "Job name (same as used in async_job_save)"
+        description: "Unique name for the job to load"
         type: str
         required: true
 
       async_job_load_host_filter:
-        description: "Host to load job from (defaults to inventory_hostname)"
+        description: "Host filter for job lookup (defaults to current host)"
         type: str
         required: false
 
+      # Backend Selection
+      async_job_load_backend:
+        description: "Storage backend type (filesystem or oci)"
+        type: str
+        default: "filesystem"
+        choices:
+          - filesystem
+          - oci
+
+      # Filesystem Backend Parameters
       async_job_load_state_dir:
-        description: "Directory containing job state files"
+        description: "Directory where job state files are stored (filesystem backend only)"
         type: str
         default: ".ansible_async_state"
 
+      # OCI Backend Parameters
+      async_job_load_oci_bucket:
+        description: "OCI Object Storage bucket name (required when backend=oci)"
+        type: str
+        required: false
+
+      async_job_load_oci_namespace:
+        description: "OCI Object Storage namespace (required when backend=oci)"
+        type: str
+        required: false
+
+      async_job_load_oci_profile:
+        description: "OCI CLI profile name"
+        type: str
+        default: "DEFAULT"
+
       # OUTPUTS
       async_job_load_found:
-        description: "[OUTPUT] Boolean indicating if job was found"
+        description: "[OUTPUT] Whether job was found"
         type: bool
         required: false
 
       async_job_load_ansible_job_id:
-        description: "[OUTPUT] Ansible job ID for use with async_status (if found)"
+        description: "[OUTPUT] Ansible job ID for async_status"
         type: str
         required: false
 
       async_job_load_host:
-        description: "[OUTPUT] Target host where async task is running (if found)"
+        description: "[OUTPUT] Host where job is running"
         type: str
         required: false
 
       async_job_load_metadata:
-        description: "[OUTPUT] Job metadata dictionary (if found)"
+        description: "[OUTPUT] Job metadata dictionary"
         type: dict
         required: false

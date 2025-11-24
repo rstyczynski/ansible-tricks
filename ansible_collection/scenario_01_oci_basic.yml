@@ -1,0 +1,74 @@
+---
+# Test Scenario 1: Basic OCI backend - Save and Load
+# Prerequisites:
+# - OCI CLI configured with valid profile
+# - OCI bucket exists
+# - Set OCI_BUCKET and OCI_NAMESPACE environment variables
+
+- name: Test OCI backend for async job persistence
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    oci_bucket: "{{ lookup('env', 'OCI_BUCKET') | default('ansible-async-test') }}"
+    oci_namespace: "{{ lookup('env', 'OCI_NAMESPACE') }}"
+    test_job_name: "oci_test_job_001"
+
+  tasks:
+    - name: Validate OCI parameters are provided
+      ansible.builtin.fail:
+        msg: "Please set OCI_NAMESPACE environment variable"
+      when: oci_namespace == ""
+
+    - name: Start a long-running task (sleep 10 seconds)
+      ansible.builtin.command: sleep 10
+      async: 30
+      poll: 0
+      register: async_result
+
+    - name: Save job to OCI Object Storage
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_save
+      vars:
+        async_job_save_backend: "oci"
+        async_job_save_job_name: "{{ test_job_name }}"
+        async_job_save_ansible_job_id: "{{ async_result.ansible_job_id }}"
+        async_job_save_host: "{{ inventory_hostname }}"
+        async_job_save_oci_bucket: "{{ oci_bucket }}"
+        async_job_save_oci_namespace: "{{ oci_namespace }}"
+        async_job_save_metadata:
+          test: "oci_basic"
+          scenario: "01"
+
+    - name: Display OCI save result
+      ansible.builtin.debug:
+        msg: "Job saved to: {{ async_job_save_state_file }}"
+
+    - name: Load job from OCI Object Storage
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_load
+      vars:
+        async_job_load_backend: "oci"
+        async_job_load_job_name: "{{ test_job_name }}"
+        async_job_load_oci_bucket: "{{ oci_bucket }}"
+        async_job_load_oci_namespace: "{{ oci_namespace }}"
+
+    - name: Display OCI load result
+      ansible.builtin.debug:
+        msg:
+          - "Job found: {{ async_job_load_found }}"
+          - "Job ID: {{ async_job_load_ansible_job_id | default('N/A') }}"
+          - "Host: {{ async_job_load_host | default('N/A') }}"
+
+    - name: Check async task status
+      ansible.builtin.async_status:
+        jid: "{{ async_job_load_ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 5
+      delay: 3
+      when: async_job_load_found
+
+    - name: Display final status
+      ansible.builtin.debug:
+        msg: "Task completed successfully with OCI backend!"
+      when: async_job_load_found and job_result.finished == 1

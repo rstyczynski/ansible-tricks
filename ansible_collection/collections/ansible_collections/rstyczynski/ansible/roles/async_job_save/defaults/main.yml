@@ -1,3 +1,14 @@
 ---
+# Default variables for async_job_save role
+
+# Backend selection (filesystem or oci)
+async_job_save_backend: "filesystem"
+
+# Filesystem backend defaults
 async_job_save_state_dir: ".ansible_async_state"
+
+# OCI backend defaults
+async_job_save_oci_profile: "DEFAULT"
+
+# Metadata defaults
 async_job_save_metadata: {}

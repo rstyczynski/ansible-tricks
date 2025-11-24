@@ -1,0 +1,52 @@
+---
+# OCI Object Storage backend implementation for async_job_save using OCI CLI
+
+- name: "Save Job (OCI): Validate OCI-specific parameters"
+  ansible.builtin.fail:
+    msg: "OCI backend requires: async_job_save_oci_bucket, async_job_save_oci_namespace"
+  when: >
+    async_job_save_oci_bucket is not defined or
+    async_job_save_oci_namespace is not defined
+  delegate_to: localhost
+
+- name: "Save Job (OCI): Create JSON state content"
+  ansible.builtin.set_fact:
+    async_job_save_oci_json_content: |
+      {
+        "job_name": "{{ async_job_save_job_name }}",
+        "host": "{{ async_job_save_host }}",
+        "ansible_job_id": "{{ async_job_save_ansible_job_id }}",
+        "save_time": "{{ ansible_date_time.iso8601 }}",
+        "metadata": {{ async_job_save_metadata | to_json }}
+      }
+
+- name: "Save Job (OCI): Write JSON to temp file"
+  ansible.builtin.copy:
+    content: "{{ async_job_save_oci_json_content }}"
+    dest: "/tmp/ansible_async_{{ async_job_save_job_name }}.json"
+    mode: '0600'
+  delegate_to: localhost
+
+- name: "Save Job (OCI): Upload to OCI Object Storage"
+  ansible.builtin.command:
+    cmd: >
+      oci os object put
+      --bucket-name {{ async_job_save_oci_bucket }}
+      --namespace {{ async_job_save_oci_namespace }}
+      --name {{ async_job_save_host }}/{{ async_job_save_job_name }}.json
+      --file /tmp/ansible_async_{{ async_job_save_job_name }}.json
+      --profile {{ async_job_save_oci_profile }}
+      --force
+  register: async_job_save_oci_result
+  delegate_to: localhost
+  changed_when: true
+
+- name: "Save Job (OCI): Clean up temp file"
+  ansible.builtin.file:
+    path: "/tmp/ansible_async_{{ async_job_save_job_name }}.json"
+    state: absent
+  delegate_to: localhost
+
+- name: "Save Job (OCI): Set state file reference (OCI URI)"
+  ansible.builtin.set_fact:
+    async_job_save_state_file: "oci://{{ async_job_save_oci_bucket }}/{{ async_job_save_host }}/{{ async_job_save_job_name }}.json"

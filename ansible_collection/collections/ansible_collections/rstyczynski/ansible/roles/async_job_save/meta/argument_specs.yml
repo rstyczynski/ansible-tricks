@@ -1,10 +1,10 @@
 ---
 argument_specs:
   main:
-    short_description: Save async job metadata by name for idempotent retrieval
+    short_description: Save async job metadata by name for idempotent retrieval (filesystem or OCI backend)
 
     options:
-      # INPUTS
+      # INPUTS - Common
       async_job_save_job_name:
         description: "Unique name for this job (used as identifier)"
         type: str
@@ -20,19 +20,45 @@ argument_specs:
         type: str
         required: true
 
-      async_job_save_state_dir:
-        description: "Directory to store job state files"
-        type: str
-        default: ".ansible_async_state"
-
       async_job_save_metadata:
         description: "Optional metadata dictionary for job tagging"
         type: dict
         required: false
         default: {}
 
+      # Backend Selection
+      async_job_save_backend:
+        description: "Storage backend type (filesystem or oci)"
+        type: str
+        default: "filesystem"
+        choices:
+          - filesystem
+          - oci
+
+      # Filesystem Backend Parameters
+      async_job_save_state_dir:
+        description: "Directory to store job state files (filesystem backend only)"
+        type: str
+        default: ".ansible_async_state"
+
+      # OCI Backend Parameters
+      async_job_save_oci_bucket:
+        description: "OCI Object Storage bucket name (required when backend=oci)"
+        type: str
+        required: false
+
+      async_job_save_oci_namespace:
+        description: "OCI Object Storage namespace (required when backend=oci)"
+        type: str
+        required: false
+
+      async_job_save_oci_profile:
+        description: "OCI CLI profile name"
+        type: str
+        default: "DEFAULT"
+
       # OUTPUTS
       async_job_save_state_file:
-        description: "[OUTPUT] Full path to job state file"
+        description: "[OUTPUT] Full path to job state file or OCI URI"
         type: str
         required: false

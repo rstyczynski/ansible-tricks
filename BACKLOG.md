@@ -189,6 +189,10 @@ Test case must cover:
 3. controller playbook return with host and job_id to check result. finish cleanly when task is done
 4. managed host crashed and lost the process. controller handles it.
 
+### GHC-16. Long running task - OCI Object Storage support
+
+Data stored at `.ansible_async_state` may be stored in OCI Object Storage bucket.
+
 ## Bug fixes
 
 ## Change requests

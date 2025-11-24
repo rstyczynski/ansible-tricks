@@ -1,0 +1,60 @@
+---
+# OCI Object Storage backend implementation for async_job_load using OCI CLI
+
+- name: "Load Job (OCI): Validate OCI-specific parameters"
+  ansible.builtin.fail:
+    msg: "OCI backend requires: async_job_load_oci_bucket, async_job_load_oci_namespace"
+  when: >
+    async_job_load_oci_bucket is not defined or
+    async_job_load_oci_namespace is not defined
+  delegate_to: localhost
+
+- name: "Load Job (OCI): Set host filter to current host if not specified"
+  ansible.builtin.set_fact:
+    async_job_load_host_internal: "{{ async_job_load_host_filter | default(inventory_hostname) }}"
+
+- name: "Load Job (OCI): Download from OCI Object Storage"
+  ansible.builtin.command:
+    cmd: >
+      oci os object get
+      --bucket-name {{ async_job_load_oci_bucket }}
+      --namespace {{ async_job_load_oci_namespace }}
+      --name {{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json
+      --file /tmp/ansible_async_load_{{ async_job_load_job_name }}.json
+      --profile {{ async_job_load_oci_profile }}
+  register: async_job_load_oci_result
+  delegate_to: localhost
+  changed_when: false
+  failed_when: false
+
+- name: "Load Job (OCI): Check if object was found"
+  ansible.builtin.set_fact:
+    async_job_load_found: false
+  when: async_job_load_oci_result.rc != 0
+
+- name: "Load Job (OCI): Read downloaded JSON if found"
+  ansible.builtin.slurp:
+    src: "/tmp/ansible_async_load_{{ async_job_load_job_name }}.json"
+  register: async_job_load_state_raw
+  delegate_to: localhost
+  when: async_job_load_oci_result.rc == 0
+
+- name: "Load Job (OCI): Parse job state if found"
+  ansible.builtin.set_fact:
+    async_job_load_state: "{{ async_job_load_state_raw.content | b64decode | from_json }}"
+  when: async_job_load_oci_result.rc == 0
+
+- name: "Load Job (OCI): Set output variables if found"
+  ansible.builtin.set_fact:
+    async_job_load_found: true
+    async_job_load_ansible_job_id: "{{ async_job_load_state.ansible_job_id }}"
+    async_job_load_host: "{{ async_job_load_state.host }}"
+    async_job_load_metadata: "{{ async_job_load_state.metadata }}"
+  when: async_job_load_oci_result.rc == 0
+
+- name: "Load Job (OCI): Clean up temp file"
+  ansible.builtin.file:
+    path: "/tmp/ansible_async_load_{{ async_job_load_job_name }}.json"
+    state: absent
+  delegate_to: localhost
+  when: async_job_load_oci_result.rc == 0

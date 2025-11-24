@@ -1,2 +1,11 @@
 ---
+# Default variables for async_job_load role
+
+# Backend selection (filesystem or oci)
+async_job_load_backend: "filesystem"
+
+# Filesystem backend defaults
 async_job_load_state_dir: ".ansible_async_state"
+
+# OCI backend defaults
+async_job_load_oci_profile: "DEFAULT"

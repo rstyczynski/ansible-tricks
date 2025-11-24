@@ -86,3 +86,11 @@ Mode: YOLO
 Backlog Items:
 
 * GHC-15. Long running task
+
+
+## Sprint 12 - OCI Object Storage support for long running task
+
+Status: Progress
+Mode: YOLO
+
+Backlog Items: GHC-16
