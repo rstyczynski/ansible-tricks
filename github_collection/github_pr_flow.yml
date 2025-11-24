@@ -1,0 +1,224 @@
+# INPUT VARIABLES TABLE
+# | name                              | type   | description                                 |
+# |-----------------------------------|--------|---------------------------------------------|
+# | arg_repo_url                      | string | Repository URL                               |
+# | arg_dest_path                     | string | Destination path                             |
+# | arg_base_branch                   | string | Base branch name                             |
+# | arg_new_branch                    | string | New branch name                              |
+# | arg_push_new_branch               | bool   | Whether to push new branch                   |
+# | arg_file_source                   | string | Source file to copy                          |
+# | arg_file_path                     | string | File path in repository                      |
+# | arg_commit_message                | string | Commit message                               |
+# | arg_pr_title                      | string | PR title                                    |
+# | arg_pr_body                       | string | PR body                                     |
+# | arg_pr_comment                    | string | PR comment (defaults to approval trigger)   |
+# | arg_pr_comment_barrier_patterns   | list   | Comment regex patterns to release workflow  |
+# | arg_pr_comment_barrier_timeout    | int    | Timeout for waiting on approval comment     |
+# | arg_pr_comment_barrier_interval   | int    | Polling interval for comment checks         |
+# | arg_pr_comment_barrier_latest_only| bool   | Check only the latest comment if true       |
+# | arg_pr_status_check_retries       | int    | Number of retry attempts                    |
+# | arg_pr_status_check_delay         | int    | Seconds to wait between retries             |
+# | arg_pr_merge                      | bool   | Whether to merge PR                         |
+# | arg_pr_merge_method               | string | Merge method                                |
+# | arg_pr_pull_latest                | bool   | Whether to pull latest changes               |
+# | arg_branch_delete                 | bool   | Whether to delete branch                     |
+# | arg_delete_branch                 | string | Branch to delete                            |
+#
+# OUTPUT VARIABLES TABLE
+# | name  | type | description                                    |
+# |-------|------|------------------------------------------------|
+---
+# Set common variables for the workflow
+- name: Set variables for workflow
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    arg_repo_url: "https://github.com/rstyczynski/github_lab.git"
+    arg_dest_path: "./github_lab"
+    arg_base_branch: "main"
+    arg_new_branch: "test-collection-e2e-final"
+    arg_push_new_branch: true
+    arg_file_source: "./1.trigger"
+    arg_file_path: "1.trigger"
+    arg_commit_message: "test: verify ansible collection workflow"
+    arg_pr_title: "Test Collection Workflow"
+    arg_pr_body: "Automated test to verify rstyczynski.github collection end-to-end workflow"
+    arg_pr_comment: "/approved"
+    arg_pr_comment_barrier_patterns:
+      - "/approved"
+    arg_pr_comment_barrier_timeout: 300
+    arg_pr_comment_barrier_interval: 5
+    arg_pr_comment_barrier_latest_only: true
+    arg_pr_status_check_retries: 6
+    arg_pr_status_check_delay: 5
+    arg_pr_merge: true
+    arg_pr_merge_method: "merge"
+    arg_pr_pull_latest: true
+    arg_branch_delete: true
+    arg_delete_branch: "test-collection-e2e-final"
+
+  tasks:
+    - name: Execute GitHub workflow
+      block:
+        - name: Precheck
+          ansible.builtin.include_role:
+            name: rstyczynski.github.github_precheck
+
+        - name: Authenticate GitHub CLI
+          ansible.builtin.include_role:
+            name: rstyczynski.github.github_auth
+          # No parameters required - precheck already verified dependencies
+          # gh CLI manages authentication state internally
+
+        - name: Clone Repository
+          ansible.builtin.include_role:
+            name: rstyczynski.github.repo_clone
+          vars:
+            repo_clone_repo_url: "{{ arg_repo_url }}"
+            repo_clone_dest_path: "{{ arg_dest_path }}"
+            repo_clone_base_branch: "{{ arg_base_branch }}"
+            repo_clone_new_branch: "{{ arg_new_branch }}"
+
+        - name: Create and Switch to Branch
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_checkout
+          vars:
+            branch_checkout_new_branch: "{{ arg_new_branch }}"
+            branch_checkout_dest_path: "{{ arg_dest_path }}"
+            branch_checkout_base_branch: "{{ arg_base_branch }}"
+            branch_checkout_push_new_branch: "{{ arg_push_new_branch }}"
+
+        - name: Add File to Repository
+          ansible.builtin.include_role:
+            name: rstyczynski.github.repo_file_add
+          vars:
+            repo_file_add_file_source: "{{ arg_file_source }}"
+            repo_file_add_file_path: "{{ arg_file_path }}"
+            repo_file_add_dest_path: "{{ arg_dest_path }}"
+
+        - name: Commit Changes
+          ansible.builtin.include_role:
+            name: rstyczynski.github.repo_commit
+          vars:
+            repo_commit_dest_path: "{{ arg_dest_path }}"
+            repo_commit_commit_message: "{{ arg_commit_message }}"
+
+        - name: Push Changes
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_push
+          vars:
+            branch_push_dest_path: "{{ arg_dest_path }}"
+
+        - name: Create Pull Request
+          ansible.builtin.include_role:
+            name: rstyczynski.github.pr_create
+          vars:
+            pr_create_dest_path: "{{ arg_dest_path }}"
+            pr_create_base_branch: "{{ arg_base_branch }}"
+            pr_create_pr_title: "{{ arg_pr_title }}"
+            pr_create_pr_body: "{{ arg_pr_body }}"
+
+        - name: Check PR status with retry
+          ansible.builtin.include_role:
+            name: rstyczynski.github.pr_status_check_pause
+          loop: "{{ range(1, arg_pr_status_check_retries + 1) | list }}"
+          loop_control:
+            loop_var: attempt_number
+          vars:
+            pr_status_check_pause_dest_path: "{{ arg_dest_path }}"
+            pr_status_check_pause_pr_status_check_delay: "{{ arg_pr_status_check_delay }}"
+            pr_status_check_pause_pr_status_check_retries: "{{ arg_pr_status_check_retries }}"
+            pr_status_check_pause_has_pending_checks: "{{ pr_status_check_has_pending_checks | default(false) }}"
+            pr_status_check_pause_attempt_number: "{{ attempt_number }}"
+          when: pr_status_check_has_pending_checks is not defined or pr_status_check_has_pending_checks | bool
+
+        - name: Fail if checks still pending after all attempts
+          ansible.builtin.fail:
+            msg: >-
+              PR status checks did not complete within
+              {{ arg_pr_status_check_retries * arg_pr_status_check_delay }} seconds
+              ({{ arg_pr_status_check_retries }} attempts)
+          when: pr_status_check_has_pending_checks is defined and pr_status_check_has_pending_checks | bool
+
+        - name: "Add comment to PR"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.pr_comment
+          vars:
+            pr_comment_pr_comment: "{{ arg_pr_comment }}"
+            pr_comment_dest_path: "{{ arg_dest_path }}"
+
+        - name: "Wait for approval comment barrier"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.pr_comment_barrier
+          vars:
+            pr_comment_barrier_repo: "{{ arg_repo_url | regex_replace('https://github.com/', '') | regex_replace('\\.git$', '') }}"
+            pr_comment_barrier_issue_number: "{{ pr_create_pr_number }}"
+            pr_comment_barrier_patterns: "{{ arg_pr_comment_barrier_patterns }}"
+            pr_comment_barrier_timeout: "{{ arg_pr_comment_barrier_timeout }}"
+            pr_comment_barrier_interval: "{{ arg_pr_comment_barrier_interval }}"
+            pr_comment_barrier_latest_only: "{{ arg_pr_comment_barrier_latest_only }}"
+
+        - name: "Merge PR"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.pr_merge
+          vars:
+            pr_merge_dest_path: "{{ arg_dest_path }}"
+            pr_merge_pr_merge_method: "{{ arg_pr_merge_method }}"
+          when: arg_pr_merge is defined and arg_pr_merge | bool
+
+        - name: "Switch to base branch"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_switch
+          vars:
+            branch_switch_dest_path: "{{ arg_dest_path }}"
+            branch_switch_switch_to_branch: "{{ arg_base_branch }}"
+          when: arg_pr_merge is defined and arg_pr_merge | bool
+
+        - name: "Pull latest changes from base branch"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_pull
+          vars:
+            branch_pull_dest_path: "{{ arg_dest_path }}"
+          when:
+            - arg_pr_pull_latest is defined and arg_pr_pull_latest | bool
+            - arg_pr_merge is defined and arg_pr_merge | bool
+
+        - name: "Delete branch"
+          ansible.builtin.include_role:
+            name: rstyczynski.github.branch_delete
+          vars:
+            branch_delete_dest_path: "{{ arg_dest_path }}"
+            branch_delete_delete_branch: "{{ arg_delete_branch }}"
+            branch_delete_new_branch: "{{ arg_new_branch }}"
+            branch_delete_base_branch: "{{ arg_base_branch }}"
+          when:
+            - arg_branch_delete is defined and arg_branch_delete | bool
+            - arg_pr_merge is defined and arg_pr_merge | bool
+
+        - name: "Display success message"
+          ansible.builtin.debug:
+            msg: "Workflow completed successfully"
+
+      rescue:
+        - name: "Display error message"
+          ansible.builtin.debug:
+            msg: "Workflow failed, cleaning up..."
+
+        - name: Set failure flag
+          ansible.builtin.set_fact:
+            workflow_failed: true
+
+      always:
+        - name: Logout from GitHub CLI
+          ansible.builtin.include_role:
+            name: rstyczynski.github.github_logout
+          vars:
+            github_logout_gh_version: "{{ github_precheck_gh_version }}"
+            github_logout_gh_auth_result: "{{ github_auth_gh_auth_result }}"
+
+        - name: Fail if workflow had errors
+          ansible.builtin.fail:
+            msg: "Workflow failed - check errors above"
+          when: workflow_failed is defined and workflow_failed | bool

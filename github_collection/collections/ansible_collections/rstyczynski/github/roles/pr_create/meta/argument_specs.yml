@@ -49,3 +49,7 @@ argument_specs:
         description: "[OUTPUT] Result of creating PR"
         type: dict
         required: false
+      pr_create_pr_number:
+        description: "[OUTPUT] PR number (existing or newly created)"
+        type: int
+        required: false

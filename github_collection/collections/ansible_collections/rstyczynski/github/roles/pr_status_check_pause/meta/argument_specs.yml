@@ -7,6 +7,10 @@ argument_specs:
 
     options:
       # INPUT PARAMETERS
+      pr_status_check_pause_dest_path:
+        description: "Destination path to the git repository"
+        type: path
+        required: true
       pr_status_check_pause_pr_status_check_delay:
         description: "Seconds to wait between status check attempts"
         type: int

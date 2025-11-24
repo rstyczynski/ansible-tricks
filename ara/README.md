@@ -18,6 +18,7 @@ Source: https://ara.recordsansible.org
 ## Install & Configure client
 
 ```
+cd ara
 python3 -m venv venv
 source venv/bin/activate
 pip3 install ara ara[server] ansible

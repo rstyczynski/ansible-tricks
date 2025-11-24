@@ -1,6 +1,7 @@
 # INPUT VARIABLES TABLE
 # | name                                | type   | description                                 |
 # |-------------------------------------|--------|---------------------------------------------|
+# | pr_status_check_pause_dest_path     | path   | Destination path to the git repository      |
 # | pr_status_check_pause_pr_status_check_delay| int | Seconds to wait between retry attempts |
 # | pr_status_check_pause_has_pending_checks| bool | Whether there are pending checks        |
 # | pr_status_check_pause_attempt_number| int    | Current attempt number                     |
@@ -17,6 +18,8 @@
 - name: "PR Check: Check PR status"
   ansible.builtin.include_role:
     name: rstyczynski.github.pr_status_check
+  vars:
+    pr_status_check_dest_path: "{{ pr_status_check_pause_dest_path }}"
 
 - name: "PR Check: Wait before next attempt"
 

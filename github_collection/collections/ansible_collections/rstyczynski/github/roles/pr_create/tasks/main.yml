@@ -15,6 +15,7 @@
 # | pr_create_final_pr_title      | string | Final PR title to use                          |
 # | pr_create_final_pr_body       | string | Final PR body to use                           |
 # | pr_create_pr_create_result    | dict   | Result of creating PR                           |
+# | pr_create_pr_number           | int    | PR number (existing or newly created)          |
 ---
 - name: "PR Create: Validate arguments"
   ansible.builtin.validate_argument_spec:
@@ -55,6 +56,12 @@
   changed_when: false
   failed_when: false
 
+- name: "PR Create: Set PR number for existing PR"
+
+  ansible.builtin.set_fact:
+    pr_create_pr_number: "{{ pr_create_existing_pr.stdout | int }}"
+  when: pr_create_existing_pr.stdout != ""
+
 - name: "PR Create: Set PR title"
 
   ansible.builtin.set_fact:
@@ -88,6 +95,21 @@
   when: pr_create_existing_pr.stdout == ""
   register: pr_create_pr_create_result
   changed_when: pr_create_pr_create_result.rc == 0
+
+- name: "PR Create: Get PR number for newly created PR"  # noqa: command-instead-of-module
+
+  ansible.builtin.command:
+    cmd: gh pr view --json number --jq '.number'
+    chdir: "{{ pr_create_dest_path }}"
+  register: pr_create_new_pr_number
+  changed_when: false
+  when: pr_create_pr_create_result is not skipped
+
+- name: "PR Create: Set PR number for new PR"
+
+  ansible.builtin.set_fact:
+    pr_create_pr_number: "{{ pr_create_new_pr_number.stdout | int }}"
+  when: pr_create_pr_create_result is not skipped
 
 - name: "PR Create: Display PR information"
 

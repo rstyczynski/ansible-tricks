@@ -177,3 +177,52 @@ Test case must cover:
 
 Operator uses `curl` to get data from Ara database. Cooperate with developments from GHC-13 to trace playbook run via `curl`. Operator knows identifier used to run the play. Keep all in ./ara directory
 
+## Bug fixes
+
+## Change requests
+
+### CR-1. repo_commit's message argument is mandatory
+
+Remove `repo_commit_file_path` argument as it's not practical.
+Remove task `Commit: Set commit message`
+Remove output variable `repo_commit_final_commit_message`
+
+Update meta arg specification.
+Update README documentation.
+Update generated HTML documentation.
+
+### CR-2. pr_create returns pr number
+
+Currently github_pr_flow.yml contains task to lookup PR number. It must be integrated into pr_create, that will return attribute with PR number. Returned PR number is an existing PR number of one was in place or the new one - if was created. Blow extra task should be removed from flow after implementation of this change in pr_create.
+
+```
+        - name: Capture pull request number for barrier
+          ansible.builtin.command: >-
+            gh pr view --json number --jq '.number'
+          args:
+            chdir: "{{ dest_path }}"
+          register: pr_comment_barrier_pr_number
+          changed_when: false
+          failed_when: pr_comment_barrier_pr_number.rc != 0
+
+        - name: Set arg variables for comment barrier
+          ansible.builtin.set_fact:
+            arg_pr_comment_barrier_pr_number: "{{ pr_comment_barrier_pr_number.stdout | int }}"
+```
+
+### CR-3. PR status check / PR status check pause gets all arguments via variables
+
+Move this assignment to `pr_status_check`, `pr_status_check_pause` roles. Remove it from top level flow. 
+
+```
+        - name: Set variables for PR status check
+          ansible.builtin.set_fact:
+            pr_status_check_dest_path: "{{ dest_path }}"
+```
+
+### CR-4. Prefix all playbook arguments with arg_
+
+All `github_pr_flow.yml` arguments are prefixed by `arg_`.
+
+### CR-5.  repo_file_add gets list of files with allowed wildcards on files and directories incl. subdirs.
+

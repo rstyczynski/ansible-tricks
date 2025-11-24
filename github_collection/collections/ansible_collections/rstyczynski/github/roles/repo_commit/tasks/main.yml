@@ -2,14 +2,12 @@
 # | name                      | type   | description                                 |
 # |---------------------------|--------|---------------------------------------------|
 # | repo_commit_dest_path     | string | Destination path to the git repository      |
-# | repo_commit_commit_message| string | Commit message (optional)                    |
-# | repo_commit_file_path     | string | File path for commit message fallback        |
+# | repo_commit_commit_message| string | Commit message (required)                    |
 #
 # OUTPUT VARIABLES TABLE
 # | name                          | type   | description                                    |
 # |-------------------------------|--------|------------------------------------------------|
 # | repo_commit_git_status        | dict   | Git status information                         |
-# | repo_commit_final_commit_message| string | Final commit message to use                  |
 # | repo_commit_git_commit_result| dict   | Result of committing changes                   |
 ---
 - name: "Commit: Validate arguments"
@@ -23,18 +21,9 @@
   register: repo_commit_git_status
   changed_when: false
 
-- name: "Commit: Set commit message"
-  ansible.builtin.set_fact:
-    repo_commit_final_commit_message: >-
-      {% if repo_commit_commit_message is defined and repo_commit_commit_message != "" %}
-      {{ repo_commit_commit_message }}
-      {% else %}
-      Add file: {{ repo_commit_file_path }}
-      {% endif %}
-
 - name: "Commit: Commit changes if staged"
   ansible.builtin.command:
-    cmd: git commit -m "{{ repo_commit_final_commit_message }}"
+    cmd: git commit -m "{{ repo_commit_commit_message }}"
     chdir: "{{ repo_commit_dest_path }}"
   when: repo_commit_git_status.stdout != ""
   register: repo_commit_git_commit_result

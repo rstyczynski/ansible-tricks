@@ -70,3 +70,10 @@ Status: Done
 Mode: YOLO
 
 Backlog Items: GHC-14
+
+## Sprint 10 - Bug fixes, and small adjustments
+
+Status: Progress
+Mode: YOLO
+
+Backlog Items: CR-1, CR-2, CR-2, CR-4.
