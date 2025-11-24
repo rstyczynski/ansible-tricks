@@ -10,8 +10,8 @@
   hosts: localhost
   gather_facts: true
   vars:
-    job_name: "{{ cli_job_name | default('default_job') }}"
-    job_command: "{{ cli_command | default('sleep 60') }}"
+    job_name: "{{ cli_job_name | default('default_job1') }}"
+    job_command: "{{ cli_command | default('for i in {1..12}; do echo \"Progress: iteration $i at $(date)\"; sleep 5; done; echo \"Task completed\"') }}"
     job_timeout: "{{ cli_timeout | default(120) | int }}"
   tasks:
     - name: Load existing job

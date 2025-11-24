@@ -60,11 +60,15 @@
           - Return Code: {{ crash_status.rc | default('N/A') }}
           {% endif %}
           {% if crash_status.failed and 'could not find job' in (crash_status.msg | default('')) %}
-          - CRASH DETECTED: Job was lost (process killed or host rebooted)
+          - CRASH DETECTED: Job record lost (process killed or host rebooted)
+          {% elif crash_status.failed and crash_status.finished and (crash_status.rc | default(0)) != 0 %}
+          - KILLED/FAILED: Process was terminated abnormally (signal/error, rc={{ crash_status.rc }})
+          {% elif crash_status.failed %}
+          - ERROR: {{ crash_status.msg | default('Unknown error') }}
           {% elif not crash_status.finished %}
           - Job is still running
           {% else %}
-          - Job completed normally
+          - Job completed normally (rc=0)
           {% endif %}
 
     - name: Display stdout output
