@@ -52,14 +52,24 @@
           Job: {{ job_name }}
           Status: {{ 'COMPLETED' if job_status.finished | default(false) else 'RUNNING' }}
           {% if job_status.finished | default(false) %}
-          Output: {{ job_status.stdout | default('No output') }}
-          Return Code: {{ job_status.rc }}
-          {% else %}
-          Progress: Task still running, run playbook again to check
+          Return Code: {{ job_status.rc | default('N/A') }}
           {% endif %}
           {% if job_status.failed | default(false) %}
           Error: {{ job_status.msg | default('Unknown error') }}
           {% endif %}
+          {% if not job_status.finished | default(false) %}
+          Progress: Task still running, run playbook again to check
+          {% endif %}
+
+    - name: Display stdout output
+      ansible.builtin.debug:
+        msg: "{{ job_status.stdout_lines | default(['(no output yet)']) }}"
+      when: job_status.stdout is defined
+
+    - name: Display stderr output
+      ansible.builtin.debug:
+        msg: "{{ job_status.stderr_lines | default(['(no errors)']) }}"
+      when: job_status.stderr is defined and job_status.stderr | length > 0
 
     - name: Next steps
       ansible.builtin.debug:
