@@ -229,6 +229,102 @@ ansible-playbook scenario_02_parameterized.yml \
 
 **Key Insight:** Ansible's async mechanism is more sophisticated than simple `nohup` - it actively monitors and records process lifecycle events.
 
+### Ansible's Async Storage: Where Job Details Live
+
+**Location:** `~/.ansible_async/<job_id>` on the **target host** (not the controller)
+
+**Important:** This is separate from our collection's state files:
+- **Ansible's files:** `~/.ansible_async/j989292836752.97483` (on target host)
+- **Our state files:** `.ansible_async_state/<hostname>/<job_name>.json` (on controller)
+
+**What Ansible Stores:**
+
+```json
+{
+    "changed": true,
+    "stdout": "",
+    "stderr": "",
+    "rc": -15,
+    "cmd": "sleep 300",
+    "start": "2025-11-24 19:36:44.662997",
+    "end": "2025-11-24 19:37:07.576557",
+    "delta": "0:00:22.913560",
+    "failed": true,
+    "msg": "non-zero return code",
+    "invocation": {
+        "module_args": {
+            "_raw_params": "sleep 300",
+            "_uses_shell": true,
+            "expand_argument_vars": true,
+            ...
+        }
+    }
+}
+```
+
+**Key Fields:**
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `cmd` | Command that was executed | `"sleep 300"` |
+| `start` | When task started | `"2025-11-24 19:36:44.662997"` |
+| `end` | When task ended | `"2025-11-24 19:37:07.576557"` |
+| `delta` | Execution time | `"0:00:22.913560"` |
+| `rc` | Return code | `-15` (killed by SIGTERM) |
+| `stdout` | Output | Complete stdout |
+| `stderr` | Errors | Complete stderr |
+| `failed` | Task failed? | `true` or `false` |
+| `finished` | Task finished? | `1` or `0` |
+| `invocation.module_args` | Original task parameters | Full command details |
+
+**How async_status Works:**
+
+```yaml
+- async_status:
+    jid: "j989292836752.97483"
+```
+
+1. Reads file: `~/.ansible_async/j989292836752.97483` on target host
+2. Parses JSON content
+3. Returns all fields to controller
+4. Your playbook uses: `result.stdout`, `result.rc`, `result.finished`, etc.
+
+**Why Two Storage Systems?**
+
+| System | Location | Purpose | Lifetime |
+|--------|----------|---------|----------|
+| **Ansible's async files** | `~/.ansible_async/` on target | Job execution details | Until `async_status` cleanup or manual delete |
+| **Our state files** | `.ansible_async_state/` on controller | Job name → job_id mapping | Until manual delete |
+
+**Relationship:**
+
+```
+Our state file:                    Ansible's async file:
+.ansible_async_state/              ~/.ansible_async/
+  localhost/                         j989292836752.97483
+    crash_test_job.json              ↑
+      └─ ansible_job_id ─────────────┘
+         "j989292836752.97483"
+```
+
+**File Cleanup:**
+
+- **Ansible's files:** Use `async_status` with `mode: cleanup` to remove
+- **Our state files:** Manual deletion or custom cleanup role (future enhancement)
+
+**Custom async_dir:**
+
+You can change where Ansible stores async files:
+
+```yaml
+- shell: "long_command"
+  async: 3600
+  poll: 0
+  async_dir: "/var/tmp/ansible_async"  # Custom location
+```
+
+**Key Insight:** Our collection only stores the **mapping** (job_name → job_id). All actual job details (output, status, return code) are stored by Ansible's native async mechanism on the target host.
+
 ## Code Artifacts
 
 | Artifact | Purpose | Status | Tested |
