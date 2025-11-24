@@ -73,10 +73,8 @@
 
     - name: Display stdout output
       ansible.builtin.debug:
-        msg: "{{ crash_status.stdout_lines | default(['(no output)']) }}"
-      when: crash_status.stdout is defined
+        msg: "{{ crash_status.stdout_lines if (crash_status.stdout is defined and crash_status.stdout | length > 0) else ['(no output)'] }}"
 
     - name: Display stderr output
       ansible.builtin.debug:
-        msg: "{{ crash_status.stderr_lines | default(['(no errors)']) }}"
-      when: crash_status.stderr is defined and crash_status.stderr | length > 0
+        msg: "{{ crash_status.stderr_lines if (crash_status.stderr is defined and crash_status.stderr | length > 0) else ['(no errors)'] }}"

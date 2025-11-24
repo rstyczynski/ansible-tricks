@@ -63,13 +63,11 @@
 
     - name: Display stdout output
       ansible.builtin.debug:
-        msg: "{{ job_status.stdout_lines | default(['(no output yet)']) }}"
-      when: job_status.stdout is defined
+        msg: "{{ job_status.stdout_lines if (job_status.stdout is defined and job_status.stdout | length > 0) else ['(no output yet)'] }}"
 
     - name: Display stderr output
       ansible.builtin.debug:
-        msg: "{{ job_status.stderr_lines | default(['(no errors)']) }}"
-      when: job_status.stderr is defined and job_status.stderr | length > 0
+        msg: "{{ job_status.stderr_lines if (job_status.stderr is defined and job_status.stderr | length > 0) else ['(no errors)'] }}"
 
     - name: Next steps
       ansible.builtin.debug:

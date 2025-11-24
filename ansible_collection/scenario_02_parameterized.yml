@@ -61,10 +61,8 @@
 
     - name: Display stdout output
       ansible.builtin.debug:
-        msg: "{{ status.stdout_lines | default(['(no output yet)']) }}"
-      when: status.stdout is defined
+        msg: "{{ status.stdout_lines if (status.stdout is defined and status.stdout | length > 0) else ['(no output yet)'] }}"
 
     - name: Display stderr output
       ansible.builtin.debug:
-        msg: "{{ status.stderr_lines | default(['(no errors)']) }}"
-      when: status.stderr is defined and status.stderr | length > 0
+        msg: "{{ status.stderr_lines if (status.stderr is defined and status.stderr | length > 0) else ['(no errors)'] }}"

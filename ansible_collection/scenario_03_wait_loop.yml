@@ -55,10 +55,8 @@
 
     - name: Display stdout output
       ansible.builtin.debug:
-        msg: "{{ result.stdout_lines | default(['(no output)']) }}"
-      when: result.stdout is defined
+        msg: "{{ result.stdout_lines if (result.stdout is defined and result.stdout | length > 0) else ['(no output)'] }}"
 
     - name: Display stderr output
       ansible.builtin.debug:
-        msg: "{{ result.stderr_lines | default(['(no errors)']) }}"
-      when: result.stderr is defined and result.stderr | length > 0
+        msg: "{{ result.stderr_lines if (result.stderr is defined and result.stderr | length > 0) else ['(no errors)'] }}"
