@@ -11,26 +11,20 @@
   delegate_to: localhost
   run_once: true
 
-- name: "Save Job: Generate unique job ID"
-  ansible.builtin.set_fact:
-    async_job_save_job_id: "{{ async_job_save_job_name | regex_replace('[^a-zA-Z0-9_]', '_') }}_{{ ansible_date_time.epoch }}_{{ 99999999 | random | to_uuid | hash('md5') | truncate(8, True, '') }}"
-    async_job_save_save_time: "{{ ansible_date_time.iso8601 }}"
-
-- name: "Save Job: Write job state to file"
+- name: "Save Job: Write job state to file by name"
   ansible.builtin.copy:
     content: |
       {
-        "job_id": "{{ async_job_save_job_id }}",
         "job_name": "{{ async_job_save_job_name }}",
         "host": "{{ async_job_save_host }}",
         "ansible_job_id": "{{ async_job_save_ansible_job_id }}",
-        "save_time": "{{ async_job_save_save_time }}",
+        "save_time": "{{ ansible_date_time.iso8601 }}",
         "metadata": {{ async_job_save_metadata | to_json }}
       }
-    dest: "{{ async_job_save_state_dir }}/{{ async_job_save_job_id }}.json"
+    dest: "{{ async_job_save_state_dir }}/{{ async_job_save_job_name }}.json"
     mode: '0600'
   delegate_to: localhost
 
 - name: "Save Job: Set state file path"
   ansible.builtin.set_fact:
-    async_job_save_state_file: "{{ async_job_save_state_dir }}/{{ async_job_save_job_id }}.json"
+    async_job_save_state_file: "{{ async_job_save_state_dir }}/{{ async_job_save_job_name }}.json"

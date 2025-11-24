@@ -1,180 +1,221 @@
 ---
-# Test 1: Start async task, wait for completion using native async_status
-- name: Test 1 - Controller waits for result (native async)
+# IDEMPOTENT PATTERN: Run this playbook multiple times with same job_name
+# First run: Starts task and saves job_id
+# Later runs: Loads existing job_id and checks status
+
+- name: Idempotent long-running task
   hosts: localhost
   gather_facts: true
-  tags: [test1, never]
-  tasks:
-    - name: Execute long-running command with native async
-      ansible.builtin.shell: "sleep 10 && echo 'Task completed'"
-      async: 30
-      poll: 0
-      register: long_task
-
-    - name: Save job metadata for tracking
-      ansible.builtin.include_role:
-        name: rstyczynski.ansible.async_job_save
-      vars:
-        async_job_save_ansible_job_id: "{{ long_task.ansible_job_id }}"
-        async_job_save_host: "{{ inventory_hostname }}"
-        async_job_save_job_name: "test1_sleep_task"
-
-    - name: Display job ID
-      ansible.builtin.debug:
-        msg: "Job saved with ID: {{ async_job_save_job_id }}"
-
-    - name: Wait for task to complete (native async_status)
-      ansible.builtin.async_status:
-        jid: "{{ long_task.ansible_job_id }}"
-      register: job_result
-      until: job_result.finished
-      retries: 15
-      delay: 2
-
-    - name: Display result
-      ansible.builtin.debug:
-        msg: "Task completed: {{ job_result.stdout }}"
-
-# Test 2: Start async task and exit (playbook ends, task continues)
-- name: Test 2 - Controller exits after starting task
-  hosts: localhost
-  gather_facts: true
-  tags: [test2, never]
-  tasks:
-    - name: Start long-running task with native async
-      ansible.builtin.shell: "sleep 60 && date > /tmp/async_test_complete.txt"
-      async: 120
-      poll: 0
-      register: background_task
-
-    - name: Save job for later resume
-      ansible.builtin.include_role:
-        name: rstyczynski.ansible.async_job_save
-      vars:
-        async_job_save_ansible_job_id: "{{ background_task.ansible_job_id }}"
-        async_job_save_host: "{{ inventory_hostname }}"
-        async_job_save_job_name: "test2_background_task"
-        async_job_save_metadata:
-          test: "test2"
-          description: "Exit and resume test"
-
-    - name: Display job ID for resume
-      ansible.builtin.debug:
-        msg: |
-          Job started with ID: {{ async_job_save_job_id }}
-
-          To resume later, run:
-          ansible-playbook long_running_flow.yml --tags test3 -e "resume_job_id={{ async_job_save_job_id }}"
-
-# Test 3: Resume and check previously started task
-- name: Test 3 - Controller resumes and checks task
-  hosts: localhost
-  gather_facts: true
-  tags: [test3, never]
   vars:
-    resume_job_id: ""  # Pass via -e or prompt
+    job_name: "my_long_task"  # Change this to run different jobs
   tasks:
-    - name: Fail if no job ID provided
-      ansible.builtin.fail:
-        msg: "Please provide resume_job_id via -e resume_job_id=<job_id>"
-      when: resume_job_id == ""
-
-    - name: Load saved job metadata
+    # STEP 1: Try to load existing job
+    - name: Try to load existing job by name
       ansible.builtin.include_role:
         name: rstyczynski.ansible.async_job_load
       vars:
-        async_job_load_job_id: "{{ resume_job_id }}"
+        async_job_load_job_name: "{{ job_name }}"
 
-    - name: Display loaded job info
+    - name: Display if job was found
       ansible.builtin.debug:
-        msg: "Loaded job: {{ async_job_load_job_name }} on host {{ async_job_load_host }}"
+        msg: "Job '{{ job_name }}' {{ 'FOUND - will check status' if async_job_load_found else 'NOT FOUND - will start new task' }}"
 
-    - name: Check job status using native async_status
+    # STEP 2: Start task ONLY if not found
+    - name: Start long-running task (only if not exists)
+      ansible.builtin.shell: "sleep 30 && echo 'Task completed at' && date"
+      async: 60
+      poll: 0
+      register: new_task
+      when: not async_job_load_found
+
+    # STEP 3: Save job if just started
+    - name: Save job metadata (only if just started)
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_save
+      vars:
+        async_job_save_job_name: "{{ job_name }}"
+        async_job_save_ansible_job_id: "{{ new_task.ansible_job_id }}"
+        async_job_save_host: "{{ inventory_hostname }}"
+      when: not async_job_load_found
+
+    # STEP 4: Check status (works for both new and existing jobs)
+    - name: Check task status using native async_status
       ansible.builtin.async_status:
-        jid: "{{ async_job_load_ansible_job_id }}"
-      register: resumed_job_result
+        jid: "{{ async_job_load_ansible_job_id if async_job_load_found else new_task.ansible_job_id }}"
+      register: job_status
       ignore_errors: true
-      delegate_to: "{{ async_job_load_host }}"
 
+    # STEP 5: Display results
     - name: Display job status
       ansible.builtin.debug:
         msg: |
-          Job Status:
-          - Finished: {{ resumed_job_result.finished | default(false) }}
-          - Return Code: {{ resumed_job_result.rc | default('N/A') }}
-          - Failed: {{ resumed_job_result.failed | default(false) }}
-          {% if resumed_job_result.finished | default(false) %}
-          - Output: {{ resumed_job_result.stdout | default('No output') }}
+          Job: {{ job_name }}
+          Status: {{ 'COMPLETED' if job_status.finished | default(false) else 'RUNNING' }}
+          {% if job_status.finished | default(false) %}
+          Output: {{ job_status.stdout | default('No output') }}
+          Return Code: {{ job_status.rc }}
+          {% else %}
+          Progress: Task still running, run playbook again to check
+          {% endif %}
+          {% if job_status.failed | default(false) %}
+          Error: {{ job_status.msg | default('Unknown error') }}
           {% endif %}
 
-    - name: Check if job is still running
-      ansible.builtin.debug:
-        msg: "Job is still running. Run this playbook again to check status."
-      when: not (resumed_job_result.finished | default(false))
-
-# Test 4: Demonstrate host crash detection
-- name: Test 4 - Start task for crash simulation
-  hosts: localhost
-  gather_facts: true
-  tags: [test4_start, never]
-  tasks:
-    - name: Start task that will be "crashed"
-      ansible.builtin.shell: "sleep 300"
-      async: 600
-      poll: 0
-      register: crash_test_task
-
-    - name: Save job for crash test
-      ansible.builtin.include_role:
-        name: rstyczynski.ansible.async_job_save
-      vars:
-        async_job_save_ansible_job_id: "{{ crash_test_task.ansible_job_id }}"
-        async_job_save_host: "{{ inventory_hostname }}"
-        async_job_save_job_name: "test4_crash_simulation"
-
-    - name: Instructions for crash simulation
+    - name: Next steps
       ansible.builtin.debug:
         msg: |
-          Job started with ID: {{ async_job_save_job_id }}
+          {% if not job_status.finished | default(false) %}
+          → Run the same playbook again to check status:
+            ansible-playbook long_running_flow.yml
+          {% else %}
+          → Task is complete! Run with different job_name to start another:
+            ansible-playbook long_running_flow.yml -e "job_name=another_task"
+          {% endif %}
 
-          To simulate crash:
-          1. In another terminal, kill the sleep process
-          2. Then run: ansible-playbook long_running_flow.yml --tags test4_check -e "crash_job_id={{ async_job_save_job_id }}"
-
-- name: Test 4 - Check crashed task
+# Example with parameters from command line
+- name: Parameterized idempotent task
   hosts: localhost
   gather_facts: true
-  tags: [test4_check, never]
+  tags: [parametrized, never]
   vars:
-    crash_job_id: ""
+    job_name: "{{ cli_job_name | default('default_job') }}"
+    job_command: "{{ cli_command | default('sleep 60') }}"
+    job_timeout: "{{ cli_timeout | default(120) | int }}"
   tasks:
-    - name: Load crashed job
+    - name: Load existing job
       ansible.builtin.include_role:
         name: rstyczynski.ansible.async_job_load
       vars:
-        async_job_load_job_id: "{{ crash_job_id }}"
+        async_job_load_job_name: "{{ job_name }}"
 
-    - name: Attempt to check crashed job
+    - name: Start task if not found
+      ansible.builtin.shell: "{{ job_command }}"
+      async: "{{ job_timeout }}"
+      poll: 0
+      register: task_result
+      when: not async_job_load_found
+
+    - name: Save if just started
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_save
+      vars:
+        async_job_save_job_name: "{{ job_name }}"
+        async_job_save_ansible_job_id: "{{ task_result.ansible_job_id }}"
+        async_job_save_host: "{{ inventory_hostname }}"
+        async_job_save_metadata:
+          command: "{{ job_command }}"
+          timeout: "{{ job_timeout }}"
+      when: not async_job_load_found
+
+    - name: Check status
       ansible.builtin.async_status:
-        jid: "{{ async_job_load_ansible_job_id }}"
-      register: crash_check
+        jid: "{{ async_job_load_ansible_job_id if async_job_load_found else task_result.ansible_job_id }}"
+      register: status
+
+    - name: Show result
+      ansible.builtin.debug:
+        var: status
+
+# Wait loop example - check repeatedly until done
+- name: Wait for job completion with retry loop
+  hosts: localhost
+  gather_facts: true
+  tags: [wait_loop, never]
+  vars:
+    job_name: "wait_loop_task"
+  tasks:
+    - name: Load or start task
+      block:
+        - name: Try load
+          ansible.builtin.include_role:
+            name: rstyczynski.ansible.async_job_load
+          vars:
+            async_job_load_job_name: "{{ job_name }}"
+
+        - name: Start if not found
+          ansible.builtin.shell: "sleep 20 && echo 'Done'"
+          async: 60
+          poll: 0
+          register: new_job
+          when: not async_job_load_found
+
+        - name: Save if started
+          ansible.builtin.include_role:
+            name: rstyczynski.ansible.async_job_save
+          vars:
+            async_job_save_job_name: "{{ job_name }}"
+            async_job_save_ansible_job_id: "{{ new_job.ansible_job_id }}"
+            async_job_save_host: "{{ inventory_hostname }}"
+          when: not async_job_load_found
+
+    - name: Wait for completion with native async_status
+      ansible.builtin.async_status:
+        jid: "{{ async_job_load_ansible_job_id if async_job_load_found else new_job.ansible_job_id }}"
+      register: result
+      until: result.finished
+      retries: 15
+      delay: 2
+
+    - name: Display final result
+      ansible.builtin.debug:
+        msg: "Task completed: {{ result.stdout }}"
+
+# Crash detection example
+- name: Demonstrate crash detection
+  hosts: localhost
+  gather_facts: true
+  tags: [crash_test, never]
+  vars:
+    job_name: "crash_test_job"
+  tasks:
+    - name: Load or start task
+      block:
+        - name: Try load
+          ansible.builtin.include_role:
+            name: rstyczynski.ansible.async_job_load
+          vars:
+            async_job_load_job_name: "{{ job_name }}"
+
+        - name: Start long task (that you'll kill manually)
+          ansible.builtin.shell: "sleep 300"
+          async: 600
+          poll: 0
+          register: crash_job
+          when: not async_job_load_found
+
+        - name: Save job
+          ansible.builtin.include_role:
+            name: rstyczynski.ansible.async_job_save
+          vars:
+            async_job_save_job_name: "{{ job_name }}"
+            async_job_save_ansible_job_id: "{{ crash_job.ansible_job_id }}"
+            async_job_save_host: "{{ inventory_hostname }}"
+          when: not async_job_load_found
+
+        - name: Instructions if just started
+          ansible.builtin.debug:
+            msg: |
+              Task started! To simulate crash:
+              1. Find and kill the sleep process: pkill -f "sleep 300"
+              2. Run this playbook again with same job_name
+          when: not async_job_load_found
+
+    - name: Check status (will detect crash)
+      ansible.builtin.async_status:
+        jid: "{{ async_job_load_ansible_job_id if async_job_load_found else crash_job.ansible_job_id }}"
+      register: crash_status
       ignore_errors: true
 
     - name: Display crash detection
       ansible.builtin.debug:
         msg: |
-          Crash Detection:
-          - Failed: {{ crash_check.failed }}
-          - Error: {{ crash_check.msg | default('No error message') }}
-          {% if 'could not find job' in (crash_check.msg | default('')) %}
-          - Status: JOB LOST (likely crashed or cleaned up)
+          Status Check Results:
+          - Failed: {{ crash_status.failed | default(false) }}
+          - Finished: {{ crash_status.finished | default(false) }}
+          {% if crash_status.failed and 'could not find job' in (crash_status.msg | default('')) %}
+          - CRASH DETECTED: Job was lost (process killed or host rebooted)
+          {% elif not crash_status.finished %}
+          - Job is still running
+          {% else %}
+          - Job completed normally
           {% endif %}
-
-    - name: Assert crash was detected
-      ansible.builtin.assert:
-        that:
-          - crash_check.failed
-          - "'could not find job' in crash_check.msg"
-        success_msg: "✓ Crash correctly detected - job not found"
-        fail_msg: "✗ Expected 'could not find job' error"
-      ignore_errors: true

@@ -1,10 +1,15 @@
 ---
 argument_specs:
   main:
-    short_description: Save async job metadata to persistent storage
+    short_description: Save async job metadata by name for idempotent retrieval
 
     options:
       # INPUTS
+      async_job_save_job_name:
+        description: "Unique name for this job (used as identifier)"
+        type: str
+        required: true
+
       async_job_save_ansible_job_id:
         description: "Ansible job ID from async task (from register variable)"
         type: str
@@ -12,11 +17,6 @@ argument_specs:
 
       async_job_save_host:
         description: "Target host where async task is running"
-        type: str
-        required: true
-
-      async_job_save_job_name:
-        description: "Human-readable name for this job"
         type: str
         required: true
 
@@ -32,11 +32,6 @@ argument_specs:
         default: {}
 
       # OUTPUTS
-      async_job_save_job_id:
-        description: "[OUTPUT] Unique job identifier for this saved job"
-        type: str
-        required: false
-
       async_job_save_state_file:
         description: "[OUTPUT] Full path to job state file"
         type: str
