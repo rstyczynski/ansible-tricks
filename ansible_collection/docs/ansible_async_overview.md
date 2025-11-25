@@ -76,7 +76,7 @@ The file contains JSON-formatted status data including:
 
 ## Design patterns
 
-Refer to `ansible_async_patterns.md` to get information about design patterns.
+Refer to [ansible_async_patterns.md](ansible_async_patterns.md).to get information about design patterns.
 
 ## References
 

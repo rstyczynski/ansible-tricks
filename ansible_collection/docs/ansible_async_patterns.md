@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Ansible's asynchronous execution mode allows long-running tasks to execute independently of the controller's SSH connection, protecting operations from network failures and freeing controller resources. This feature is essential for tasks that exceed typical SSH timeout windows (10+ minutes) or when managing multiple long-running operations concurrently. To get more high level information refer to `ansible_async_overview.md` introduction document.
+Ansible's asynchronous execution mode allows long-running tasks to execute independently of the controller's SSH connection, protecting operations from network failures and freeing controller resources. This feature is essential for tasks that exceed typical SSH timeout windows (10+ minutes) or when managing multiple long-running operations concurrently. To get more high level information refer to  introduction document.
 
 The `rstyczynski.ansible` collection provides roles that enhance async functionality with persistent state management, enabling true idempotent long-running task patterns.
 
