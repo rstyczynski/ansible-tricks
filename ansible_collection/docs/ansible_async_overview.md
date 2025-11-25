@@ -23,7 +23,7 @@ When a task is marked with `async` parameter, Ansible:
   register: job_info
 ```
 
-![Async/Idempotent job model](model_vanilla.png)
+![Async/Idempotent job model](model_vanilla.jpg)
 
 ### Polling Modes
 
