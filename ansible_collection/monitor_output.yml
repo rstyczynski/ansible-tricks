@@ -38,7 +38,7 @@
 
 - name: Display stdout output (tail mode)
   ansible.builtin.debug:
-    msg: "{{ (stdout_content.content | b64decode).split('\n') | reject('equalto', '') | list | tail(tail_lines | int) }}"
+    msg: "{{ ((stdout_content.content | b64decode).split('\n') | reject('equalto', '') | list)[-(tail_lines | int):] }}"
   when:
     - display_mode == 'tail'
     - stdout_content is succeeded
@@ -54,7 +54,7 @@
 
 - name: Display stderr output (tail mode)
   ansible.builtin.debug:
-    msg: "{{ (stdout_content.content | b64decode).split('\n') | reject('equalto', '') | list | tail(tail_lines | int) }}"
+    msg: "{{ ((stderr_content.content | b64decode).split('\n') | reject('equalto', '') | list)[-(tail_lines | int):] }}"
   when:
     - display_mode == 'tail'
     - stderr_content is succeeded
