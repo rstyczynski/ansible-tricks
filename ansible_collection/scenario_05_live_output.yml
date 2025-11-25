@@ -1,0 +1,290 @@
+---
+# LIVE OUTPUT CAPTURE PATTERN: Monitor async task stdout/stderr in real-time
+#
+# This scenario demonstrates how to capture and monitor live output from
+# long-running async tasks. Ansible's native async_status module only
+# returns output after task completion, so this example shows the
+# file-based capture pattern.
+#
+# Key Concepts:
+# 1. Shell redirection with tee captures output to files
+# 2. stdbuf ensures unbuffered (real-time) output
+# 3. Monitoring loop reads files periodically
+# 4. Display modes: full (all output) or tail (last N lines)
+#
+# Prerequisites:
+# - bash shell (for process substitution)
+# - stdbuf utility (GNU coreutils) - recommended for real-time updates
+# - tee command (standard on all systems)
+#
+# Usage:
+#   # Run with defaults (tail mode, last 20 lines)
+#   ansible-playbook scenario_05_live_output.yml
+#
+#   # Run with full output display
+#   ansible-playbook scenario_05_live_output.yml -e "display_mode=full"
+#
+#   # Run with custom parameters
+#   ansible-playbook scenario_05_live_output.yml \
+#     -e "script_duration=60" \
+#     -e "script_line_count=20" \
+#     -e "monitor_interval=10" \
+#     -e "display_mode=tail" \
+#     -e "tail_lines=10"
+#
+
+- name: Live Output Capture Example
+  hosts: localhost
+  gather_facts: true
+  vars:
+    # Script configuration
+    script_path: "{{ playbook_dir }}/scripts/generate_output.sh"
+    script_duration: 300          # seconds (5 minutes default)
+    script_line_count: 50         # number of output lines
+
+    # Output capture configuration
+    output_dir: "~/.ansible_async"
+
+    # Display configuration
+    display_mode: "tail"          # "full" or "tail"
+    tail_lines: 20                # lines to show in tail mode
+    monitor_interval: 5           # seconds between monitoring checks
+
+    # Derived variables
+    max_retries: "{{ ((script_duration | int) / (monitor_interval | int)) | int + 10 }}"
+
+  tasks:
+    # === STEP 1: Setup ===
+
+    - name: Display scenario information
+      ansible.builtin.debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════
+          Live Output Capture Scenario
+          ═══════════════════════════════════════════════════════════
+
+          Configuration:
+            - Script duration: {{ script_duration }} seconds
+            - Output lines: {{ script_line_count }}
+            - Display mode: {{ display_mode }}
+            {% if display_mode == 'tail' -%}
+            - Tail lines: {{ tail_lines }}
+            {% endif -%}
+            - Monitor interval: {{ monitor_interval }} seconds
+
+          Output will be captured to:
+            {{ output_dir | expanduser }}/[job_id].stdout
+            {{ output_dir | expanduser }}/[job_id].stderr
+
+          ═══════════════════════════════════════════════════════════
+
+    - name: Ensure async output directory exists
+      ansible.builtin.file:
+        path: "{{ output_dir }}"
+        state: directory
+        mode: '0700'
+
+    - name: Verify helper script exists
+      ansible.builtin.stat:
+        path: "{{ script_path }}"
+      register: script_check
+      failed_when: not script_check.stat.exists
+      changed_when: false
+
+    - name: Verify capture wrapper exists
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/scripts/capture_wrapper.sh"
+      register: wrapper_check
+      failed_when: not wrapper_check.stat.exists
+      changed_when: false
+
+    # === STEP 2: Generate unique job identifier ===
+
+    - name: Generate unique job identifier
+      ansible.builtin.set_fact:
+        custom_job_id: "live_output_{{ ansible_date_time.epoch }}_{{ 999999 | random }}"
+
+    - name: Display job information
+      ansible.builtin.debug:
+        msg: |
+          Job ID: {{ custom_job_id }}
+
+          Output files will be:
+            - {{ output_dir | expanduser }}/{{ custom_job_id }}.stdout
+            - {{ output_dir | expanduser }}/{{ custom_job_id }}.stderr
+
+          You can monitor in real-time with:
+            tail -f {{ output_dir | expanduser }}/{{ custom_job_id }}.stdout
+            tail -f {{ output_dir | expanduser }}/{{ custom_job_id }}.stderr
+
+    # === STEP 3: Launch async task with output capture ===
+
+    - name: Launch async task with live output capture
+      ansible.builtin.shell: >
+        {{ playbook_dir }}/scripts/capture_wrapper.sh
+        {{ custom_job_id }}
+        {{ script_path }}
+        --duration {{ script_duration }}
+        --count {{ script_line_count }}
+      async: "{{ script_duration | int + 30 }}"
+      poll: 0
+      register: async_result
+      args:
+        executable: /bin/bash
+
+    - name: Display async job information
+      ansible.builtin.debug:
+        msg: |
+          Async task started successfully!
+
+          Ansible Job ID: {{ async_result.ansible_job_id }}
+          Custom Job ID: {{ custom_job_id }}
+
+          Task is now running in the background...
+          Starting monitoring loop in {{ monitor_interval }} seconds
+
+    # === STEP 4: Wait for output files to be created ===
+
+    - name: Wait for output files to be created
+      ansible.builtin.wait_for:
+        path: "{{ output_dir | expanduser }}/{{ custom_job_id }}.{{ item }}"
+        timeout: 30
+      loop:
+        - stdout
+        - stderr
+      loop_control:
+        label: "{{ item }}"
+
+    - name: Pause before starting monitoring
+      ansible.builtin.pause:
+        seconds: "{{ monitor_interval }}"
+
+    # === STEP 5: Monitor task output ===
+
+    - name: Monitor async task output
+      block:
+        - name: Check task status
+          ansible.builtin.async_status:
+            jid: "{{ async_result.ansible_job_id }}"
+          register: job_status
+          ignore_errors: true
+          changed_when: false
+
+        - name: Read stdout file
+          ansible.builtin.slurp:
+            src: "{{ output_dir }}/{{ custom_job_id }}.stdout"
+          register: stdout_content
+          ignore_errors: true
+
+        - name: Read stderr file
+          ansible.builtin.slurp:
+            src: "{{ output_dir }}/{{ custom_job_id }}.stderr"
+          register: stderr_content
+          ignore_errors: true
+
+        - name: Display monitoring header
+          ansible.builtin.debug:
+            msg: |
+              ─────────────────────────────────────────────────────────
+              Monitoring Check - Task {{ 'COMPLETED' if (job_status.finished | default(false)) else 'RUNNING' }}
+              ─────────────────────────────────────────────────────────
+
+        - name: Display stdout output (full mode)
+          ansible.builtin.debug:
+            msg: "{{ (stdout_content.content | b64decode).split('\n') }}"
+          when:
+            - display_mode == 'full'
+            - stdout_content is succeeded
+            - stdout_content.content | length > 0
+
+        - name: Display stdout output (tail mode)
+          ansible.builtin.debug:
+            msg: "{{ (stdout_content.content | b64decode).split('\n') | reject('equalto', '') | list | tail(tail_lines | int) }}"
+          when:
+            - display_mode == 'tail'
+            - stdout_content is succeeded
+            - stdout_content.content | length > 0
+
+        - name: Display stderr output (full mode)
+          ansible.builtin.debug:
+            msg: "{{ (stderr_content.content | b64decode).split('\n') }}"
+          when:
+            - display_mode == 'full'
+            - stderr_content is succeeded
+            - stderr_content.content | length > 0
+
+        - name: Display stderr output (tail mode)
+          ansible.builtin.debug:
+            msg: "{{ (stderr_content.content | b64decode).split('\n') | reject('equalto', '') | list | tail(tail_lines | int) }}"
+          when:
+            - display_mode == 'tail'
+            - stderr_content is succeeded
+            - stderr_content.content | length > 0
+
+        - name: Pause before next check
+          ansible.builtin.pause:
+            seconds: "{{ monitor_interval }}"
+          when: not (job_status.finished | default(false))
+
+      rescue:
+        - name: Handle monitoring errors
+          ansible.builtin.debug:
+            msg: |
+              Error during monitoring: {{ ansible_failed_result.msg | default('Unknown error') }}
+              Continuing monitoring...
+
+      # Retry until task completes
+      until: job_status.finished | default(false)
+      retries: "{{ max_retries | int }}"
+      delay: 0  # delay handled by pause task
+
+    # === STEP 6: Display final results ===
+
+    - name: Display completion header
+      ansible.builtin.debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════
+          Task Completed!
+          ═══════════════════════════════════════════════════════════
+
+    - name: Display final task status
+      ansible.builtin.debug:
+        msg: |
+          Job ID: {{ custom_job_id }}
+          Ansible Job ID: {{ async_result.ansible_job_id }}
+          Exit Code: {{ job_status.rc | default('N/A') }}
+          Status: {{ 'SUCCESS' if (job_status.rc | default(1)) == 0 else 'FAILED' }}
+
+          Output files preserved at:
+            - {{ output_dir | expanduser }}/{{ custom_job_id }}.stdout
+            - {{ output_dir | expanduser }}/{{ custom_job_id }}.stderr
+
+          You can review the complete output with:
+            cat {{ output_dir | expanduser }}/{{ custom_job_id }}.stdout
+            cat {{ output_dir | expanduser }}/{{ custom_job_id }}.stderr
+
+    - name: Display next steps
+      ansible.builtin.debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════
+          Next Steps
+          ═══════════════════════════════════════════════════════════
+
+          Try these variations:
+
+          1. Full output display mode:
+             ansible-playbook scenario_05_live_output.yml -e "display_mode=full"
+
+          2. Faster execution (shorter test):
+             ansible-playbook scenario_05_live_output.yml \
+               -e "script_duration=60" -e "script_line_count=20"
+
+          3. More frequent monitoring:
+             ansible-playbook scenario_05_live_output.yml \
+               -e "monitor_interval=3"
+
+          4. Custom tail length:
+             ansible-playbook scenario_05_live_output.yml \
+               -e "display_mode=tail" -e "tail_lines=10"
+
+          ═══════════════════════════════════════════════════════════
