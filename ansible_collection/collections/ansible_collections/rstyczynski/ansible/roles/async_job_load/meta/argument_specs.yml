@@ -10,6 +10,12 @@ argument_specs:
         type: str
         required: true
 
+      async_job_load_playbook_name:
+        description: "Playbook identifier to locate job (must match save operation)"
+        type: str
+        required: false
+        default: "{{ ansible_play_name }}"
+
       async_job_load_host_filter:
         description: "Host filter for job lookup (defaults to current host)"
         type: str

@@ -25,7 +25,7 @@
       - --namespace
       - "{{ async_job_load_oci_namespace }}"
       - --name
-      - "{{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json"
+      - "{{ async_job_load_host_internal }}/{{ async_job_load_playbook_name }}/{{ async_job_load_job_name }}.json"
       - --file
       - "/tmp/ansible_async_load_{{ async_job_load_job_name }}.json"
       - --profile

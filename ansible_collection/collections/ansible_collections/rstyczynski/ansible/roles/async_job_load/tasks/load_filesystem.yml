@@ -7,7 +7,7 @@
 
 - name: "Load Job (FS): Check if job state file exists"
   ansible.builtin.stat:
-    path: "{{ async_job_load_state_dir }}/{{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json"
+    path: "{{ async_job_load_state_dir }}/{{ async_job_load_host_internal }}/{{ async_job_load_playbook_name }}/{{ async_job_load_job_name }}.json"
   register: async_job_load_stat
   delegate_to: localhost
 
@@ -18,7 +18,7 @@
 
 - name: "Load Job (FS): Read job state file if exists"
   ansible.builtin.slurp:
-    src: "{{ async_job_load_state_dir }}/{{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json"
+    src: "{{ async_job_load_state_dir }}/{{ async_job_load_host_internal }}/{{ async_job_load_playbook_name }}/{{ async_job_load_job_name }}.json"
   register: async_job_load_state_raw
   delegate_to: localhost
   when: async_job_load_stat.stat.exists

@@ -26,6 +26,12 @@ argument_specs:
         required: false
         default: {}
 
+      async_job_save_playbook_name:
+        description: "Playbook identifier to ensure unique job keys across playbooks"
+        type: str
+        required: false
+        default: "{{ ansible_play_name }}"
+
       # Backend Selection
       async_job_save_backend:
         description: "Storage backend type (filesystem or oci)"

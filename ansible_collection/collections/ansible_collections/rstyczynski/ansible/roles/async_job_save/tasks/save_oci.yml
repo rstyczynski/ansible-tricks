@@ -39,7 +39,7 @@
       - --namespace
       - "{{ async_job_save_oci_namespace }}"
       - --name
-      - "{{ async_job_save_host }}/{{ async_job_save_job_name }}.json"
+      - "{{ async_job_save_host }}/{{ async_job_save_playbook_name }}/{{ async_job_save_job_name }}.json"
       - --file
       - "/tmp/ansible_async_{{ async_job_save_job_name }}.json"
       - --profile
@@ -57,4 +57,4 @@
 
 - name: "Save Job (OCI): Set state file reference (OCI URI)"
   ansible.builtin.set_fact:
-    async_job_save_state_file: "oci://{{ async_job_save_oci_bucket }}/{{ async_job_save_host }}/{{ async_job_save_job_name }}.json"
+    async_job_save_state_file: "oci://{{ async_job_save_oci_bucket }}/{{ async_job_save_host }}/{{ async_job_save_playbook_name }}/{{ async_job_save_job_name }}.json"
