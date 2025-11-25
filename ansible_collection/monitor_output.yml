@@ -2,6 +2,10 @@
 # monitor_output.yml - Task file for monitoring async output
 # This is included in a loop by the main playbook
 
+- name: End monitoring if already stopped
+  ansible.builtin.meta: end_host
+  when: not (continue_monitoring | default(true))
+
 - name: Check task status
   ansible.builtin.async_status:
     jid: "{{ async_result.ansible_job_id }}"
