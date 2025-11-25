@@ -82,7 +82,8 @@ The `rstyczynski.ansible` collection provides two roles that implement persisten
 - **`async_job_save`**: Saves job metadata with a human-readable name
 - **`async_job_load`**: Retrieves job metadata by name
 
-This enables **idempotent long-running task patterns** - run the same playbook multiple times, and it will:
+This enables idempotent long-running task patterns - run the same playbook multiple times, and it will:
+
 1. Check if job already exists
 2. Skip starting if already running
 3. Check and report current status
@@ -202,6 +203,7 @@ The collection includes 5 test scenarios demonstrating key design patterns for l
 **Use Case:** Deployment pipelines that may retry, disaster recovery procedures, operator uncertainty about job state.
 
 **Benefits:**
+
 - Safe to run playbook multiple times
 - No duplicate job starts
 - Always get current status
@@ -266,6 +268,7 @@ ansible-playbook scenario_02_parameterized.yml \
 ```
 
 **Execution Flow:**
+
 1. Check status
 2. If not finished, wait 2 seconds
 3. Repeat up to 15 times (30 seconds total)
@@ -275,6 +278,7 @@ ansible-playbook scenario_02_parameterized.yml \
 **Use Case:** Sequential dependencies (job B needs job A results), deployment gates, health check validation.
 
 **Benefits:**
+
 - Simple Ansible-native pattern
 - No custom polling logic
 - Clear timeout behavior
@@ -306,6 +310,7 @@ ansible-playbook scenario_02_parameterized.yml \
 ```
 
 **Detection Logic:**
+
 ```yaml
 {% if check.failed and 'could not find job' in check.msg %}
   SYSTEM CRASH: Results file lost (host reboot/disk full)
@@ -328,6 +333,7 @@ ansible-playbook scenario_02_parameterized.yml \
 **Use Case:** Long-running operations on unreliable hosts, resource-constrained environments, proactive failure handling.
 
 **Benefits:**
+
 - Detect process termination vs. system failure
 - Different recovery strategies per failure type
 - Ansible async wrapper provides robust tracking
@@ -344,6 +350,7 @@ ansible-playbook scenario_02_parameterized.yml \
 **Solution:** Use OCI Object Storage backend for distributed team access and disaster recovery.
 
 **Architecture:**
+
 ```
 OCI Bucket: ansible-async-test/
 └── localhost/
@@ -352,6 +359,7 @@ OCI Bucket: ansible-async-test/
 ```
 
 **Configuration:**
+
 ```yaml
 - ansible.builtin.include_role:
     name: rstyczynski.ansible.async_job_save
@@ -364,6 +372,7 @@ OCI Bucket: ansible-async-test/
 ```
 
 **Prerequisites:**
+
 - OCI CLI configured (`oci setup config`)
 - OCI bucket created
 - IAM permissions for object read/write
@@ -371,6 +380,7 @@ OCI Bucket: ansible-async-test/
 **Use Case:** Multi-operator teams, disaster recovery scenarios, controller infrastructure failure, cloud-native deployments.
 
 **Benefits:**
+
 - State survives controller failure
 - Multiple operators can check job status
 - Geographic redundancy (OCI bucket replication)
@@ -378,6 +388,7 @@ OCI Bucket: ansible-async-test/
 - Team handoff without knowledge loss
 
 **Limitations:**
+
 - Network latency vs. filesystem
 - OCI CLI dependency
 - Cloud costs (minimal for small state files)

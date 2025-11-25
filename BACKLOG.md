@@ -195,6 +195,15 @@ Data stored at `.ansible_async_state` may be stored in OCI Object Storage bucket
 
 ## Bug fixes
 
+## BF-1. async storage procedures uses non unique file to keep job status.
+
+Currently used host:job_mame key is not sufficient, as the same job_name may be used by different playbooks. Playbook name must be added to async job descriptor saved locally and to the OCI. 
+
+Affected roles:
+
+* rstyczynski.ansible.async_job_load
+* rstyczynski.ansible.async_job_save
+
 ## Change requests
 
 ### CR-1. repo_commit's message argument is mandatory

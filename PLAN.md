@@ -90,7 +90,14 @@ Backlog Items:
 
 ## Sprint 12 - OCI Object Storage support for long running task
 
-Status: Progress
+Status: Done
 Mode: YOLO
 
 Backlog Items: GHC-16
+
+## Sprint 13 - bug fixes
+
+Status: Progress
+Mode: YOLO
+
+Backlog Items: BF-1
