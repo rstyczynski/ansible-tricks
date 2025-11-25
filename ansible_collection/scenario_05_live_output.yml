@@ -51,7 +51,7 @@
     # Display configuration
     display_mode: "tail"          # "full" or "tail"
     tail_lines: 20                # lines to show in tail mode
-    monitor_interval: 5           # seconds between monitoring checks
+    monitor_interval: 10           # seconds between monitoring checks
 
     # Derived variables
     max_retries: "{{ ((script_duration | int) / (monitor_interval | int)) | int + 10 }}"
@@ -194,14 +194,12 @@
 
     # === STEP 5: Monitor task output ===
 
-    - name: Monitor async task output (loop until complete)
+    - name: Monitor async task output (until complete)
       ansible.builtin.include_tasks: monitor_output.yml
-      vars:
-        monitor_check_index: "{{ item }}"
-      loop: "{{ range(0, max_retries | int) | list }}"
-      loop_control:
-        label: "Monitoring check {{ item + 1 }}"
-      when: not (job_status.finished | default(false))
+      register: monitor_result
+      until: job_status.finished | default(false)
+      retries: "{{ max_retries | int }}"
+      delay: 0
 
     # === STEP 6: Display final results ===
 
