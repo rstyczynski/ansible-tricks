@@ -161,82 +161,14 @@
 
     # === STEP 5: Monitor task output ===
 
-    - name: Monitor async task output
-      block:
-        - name: Check task status
-          ansible.builtin.async_status:
-            jid: "{{ async_result.ansible_job_id }}"
-          register: job_status
-          ignore_errors: true
-          changed_when: false
-
-        - name: Read stdout file
-          ansible.builtin.slurp:
-            src: "{{ output_dir }}/{{ custom_job_id }}.stdout"
-          register: stdout_content
-          ignore_errors: true
-
-        - name: Read stderr file
-          ansible.builtin.slurp:
-            src: "{{ output_dir }}/{{ custom_job_id }}.stderr"
-          register: stderr_content
-          ignore_errors: true
-
-        - name: Display monitoring header
-          ansible.builtin.debug:
-            msg: |
-              ─────────────────────────────────────────────────────────
-              Monitoring Check - Task {{ 'COMPLETED' if (job_status.finished | default(false)) else 'RUNNING' }}
-              ─────────────────────────────────────────────────────────
-
-        - name: Display stdout output (full mode)
-          ansible.builtin.debug:
-            msg: "{{ (stdout_content.content | b64decode).split('\n') }}"
-          when:
-            - display_mode == 'full'
-            - stdout_content is succeeded
-            - stdout_content.content | length > 0
-
-        - name: Display stdout output (tail mode)
-          ansible.builtin.debug:
-            msg: "{{ (stdout_content.content | b64decode).split('\n') | reject('equalto', '') | list | tail(tail_lines | int) }}"
-          when:
-            - display_mode == 'tail'
-            - stdout_content is succeeded
-            - stdout_content.content | length > 0
-
-        - name: Display stderr output (full mode)
-          ansible.builtin.debug:
-            msg: "{{ (stderr_content.content | b64decode).split('\n') }}"
-          when:
-            - display_mode == 'full'
-            - stderr_content is succeeded
-            - stderr_content.content | length > 0
-
-        - name: Display stderr output (tail mode)
-          ansible.builtin.debug:
-            msg: "{{ (stderr_content.content | b64decode).split('\n') | reject('equalto', '') | list | tail(tail_lines | int) }}"
-          when:
-            - display_mode == 'tail'
-            - stderr_content is succeeded
-            - stderr_content.content | length > 0
-
-        - name: Pause before next check
-          ansible.builtin.pause:
-            seconds: "{{ monitor_interval }}"
-          when: not (job_status.finished | default(false))
-
-      rescue:
-        - name: Handle monitoring errors
-          ansible.builtin.debug:
-            msg: |
-              Error during monitoring: {{ ansible_failed_result.msg | default('Unknown error') }}
-              Continuing monitoring...
-
-      # Retry until task completes
-      until: job_status.finished | default(false)
-      retries: "{{ max_retries | int }}"
-      delay: 0  # delay handled by pause task
+    - name: Monitor async task output (loop until complete)
+      ansible.builtin.include_tasks: monitor_output.yml
+      vars:
+        monitor_check_index: "{{ item }}"
+      loop: "{{ range(0, max_retries | int) | list }}"
+      loop_control:
+        label: "Monitoring check {{ item + 1 }}"
+      when: not (job_status.finished | default(false))
 
     # === STEP 6: Display final results ===
 
