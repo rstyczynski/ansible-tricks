@@ -60,7 +60,9 @@
     - stderr_content is succeeded
     - stderr_content.content | length > 0
 
-- name: Pause before next check
+- name: Pause before next check (unless finished)
   ansible.builtin.pause:
     seconds: "{{ monitor_interval }}"
-  when: not (job_status.finished | default(false))
+  when:
+    - job_status is defined
+    - not (job_status.finished | default(false))
