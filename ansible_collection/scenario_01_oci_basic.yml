@@ -3,29 +3,56 @@
 # Prerequisites:
 # - OCI CLI configured with valid profile
 # - OCI bucket exists
-# - Set OCI_BUCKET and OCI_NAMESPACE environment variables
+# - Set OCI_BUCKET environment variable (or use default)
 
 - name: Test OCI backend for async job persistence
   hosts: localhost
-  gather_facts: yes
+  gather_facts: true
   vars:
-    oci_bucket: "{{ lookup('env', 'OCI_BUCKET') | default('ansible-async-test') }}"
-    oci_namespace: "{{ lookup('env', 'OCI_NAMESPACE') }}"
-    test_job_name: "oci_test_job_001"
+    oci_bucket: "{{ (lookup('env', 'OCI_BUCKET') | default('')) | ternary(lookup('env', 'OCI_BUCKET'), 'ansible-async-test') }}"
+    test_job_name: "oci_test_job_103"
 
   tasks:
-    - name: Validate OCI parameters are provided
-      ansible.builtin.fail:
-        msg: "Please set OCI_NAMESPACE environment variable"
-      when: oci_namespace == ""
+    - name: Get OCI namespace from CLI
+      ansible.builtin.command: oci os ns get --query data --raw-output
+      register: oci_ns_result
+      changed_when: false
 
-    - name: Start a long-running task (sleep 10 seconds)
-      ansible.builtin.command: sleep 10
-      async: 30
+    - name: Set OCI namespace
+      ansible.builtin.set_fact:
+        oci_namespace: "{{ oci_ns_result.stdout }}"
+
+    - name: Display OCI configuration
+      ansible.builtin.debug:
+        msg:
+          - "OCI Bucket: {{ oci_bucket }}"
+          - "OCI Namespace: {{ oci_namespace }}"
+
+    # STEP 1: Try to load existing job
+    - name: Try to load existing job by name from OCI
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_load
+      vars:
+        async_job_load_backend: "oci"
+        async_job_load_job_name: "{{ test_job_name }}"
+        async_job_load_oci_bucket: "{{ oci_bucket }}"
+        async_job_load_oci_namespace: "{{ oci_namespace }}"
+
+    - name: Display if job was found
+      ansible.builtin.debug:
+        msg: "Job '{{ test_job_name }}' {{ 'FOUND - will check status' if async_job_load_found else 'NOT FOUND - will start new task' }}"
+
+    # STEP 2: Start task ONLY if not found
+    - name: Start a long-running task (sleep 10 seconds) - only if not exists
+      ansible.builtin.shell: "for i in {1..10}; do echo \"Progress: iteration $i at $(date)\"; sleep 6; done; echo 'Task completed'"
+      async: 300
       poll: 0
       register: async_result
+      when: not async_job_load_found
+      changed_when: false
 
-    - name: Save job to OCI Object Storage
+    # STEP 3: Save job if just started
+    - name: Save job to OCI Object Storage (only if just started)
       ansible.builtin.include_role:
         name: rstyczynski.ansible.async_job_save
       vars:
@@ -38,37 +65,49 @@
         async_job_save_metadata:
           test: "oci_basic"
           scenario: "01"
+      when: not async_job_load_found
 
     - name: Display OCI save result
       ansible.builtin.debug:
         msg: "Job saved to: {{ async_job_save_state_file }}"
+      when: not async_job_load_found
 
-    - name: Load job from OCI Object Storage
-      ansible.builtin.include_role:
-        name: rstyczynski.ansible.async_job_load
-      vars:
-        async_job_load_backend: "oci"
-        async_job_load_job_name: "{{ test_job_name }}"
-        async_job_load_oci_bucket: "{{ oci_bucket }}"
-        async_job_load_oci_namespace: "{{ oci_namespace }}"
-
-    - name: Display OCI load result
-      ansible.builtin.debug:
-        msg:
-          - "Job found: {{ async_job_load_found }}"
-          - "Job ID: {{ async_job_load_ansible_job_id | default('N/A') }}"
-          - "Host: {{ async_job_load_host | default('N/A') }}"
-
+    # STEP 4: Check status (works for both new and existing jobs)
     - name: Check async task status
       ansible.builtin.async_status:
-        jid: "{{ async_job_load_ansible_job_id }}"
+        jid: "{{ async_job_load_ansible_job_id if async_job_load_found else async_result.ansible_job_id }}"
       register: job_result
       until: job_result.finished
       retries: 5
       delay: 3
-      when: async_job_load_found
+      changed_when: false
+      ignore_errors: true
+
+    # STEP 5: Display results
+    - name: Display job status
+      ansible.builtin.debug:
+        msg: |
+          Job: {{ test_job_name }}
+          Status: {{ 'COMPLETED' if job_result.finished | default(false) else 'RUNNING' }}
+          {% if job_result.finished | default(false) %}
+          Return Code: {{ job_result.rc | default('N/A') }}
+          {% endif %}
+          {% if job_result.failed | default(false) %}
+          Error: {{ job_result.msg | default('Unknown error') }}
+          {% endif %}
+          {% if not job_result.finished | default(false) %}
+          Progress: Task still running, run playbook again to check
+          {% endif %}
+
+    - name: Display stdout output
+      ansible.builtin.debug:
+        msg: "{{ job_result.stdout_lines if (job_result.stdout is defined and job_result.stdout | length > 0) else ['(no output yet)'] }}"
+
+    - name: Display stderr output
+      ansible.builtin.debug:
+        msg: "{{ job_result.stderr_lines if (job_result.stderr is defined and job_result.stderr | length > 0) else ['(no errors)'] }}"
 
     - name: Display final status
       ansible.builtin.debug:
         msg: "Task completed successfully with OCI backend!"
-      when: async_job_load_found and job_result.finished == 1
+      when: job_result.finished == 1

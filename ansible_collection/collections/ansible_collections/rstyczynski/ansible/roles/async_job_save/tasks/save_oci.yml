@@ -29,14 +29,22 @@
 
 - name: "Save Job (OCI): Upload to OCI Object Storage"
   ansible.builtin.command:
-    cmd: >
-      oci os object put
-      --bucket-name {{ async_job_save_oci_bucket }}
-      --namespace {{ async_job_save_oci_namespace }}
-      --name {{ async_job_save_host }}/{{ async_job_save_job_name }}.json
-      --file /tmp/ansible_async_{{ async_job_save_job_name }}.json
-      --profile {{ async_job_save_oci_profile }}
-      --force
+    argv:
+      - oci
+      - os
+      - object
+      - put
+      - --bucket-name
+      - "{{ async_job_save_oci_bucket }}"
+      - --namespace
+      - "{{ async_job_save_oci_namespace }}"
+      - --name
+      - "{{ async_job_save_host }}/{{ async_job_save_job_name }}.json"
+      - --file
+      - "/tmp/ansible_async_{{ async_job_save_job_name }}.json"
+      - --profile
+      - "{{ async_job_save_oci_profile }}"
+      - --force
   register: async_job_save_oci_result
   delegate_to: localhost
   changed_when: true

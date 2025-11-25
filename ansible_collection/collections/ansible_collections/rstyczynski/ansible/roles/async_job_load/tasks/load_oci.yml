@@ -15,13 +15,21 @@
 
 - name: "Load Job (OCI): Download from OCI Object Storage"
   ansible.builtin.command:
-    cmd: >
-      oci os object get
-      --bucket-name {{ async_job_load_oci_bucket }}
-      --namespace {{ async_job_load_oci_namespace }}
-      --name {{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json
-      --file /tmp/ansible_async_load_{{ async_job_load_job_name }}.json
-      --profile {{ async_job_load_oci_profile }}
+    argv:
+      - oci
+      - os
+      - object
+      - get
+      - --bucket-name
+      - "{{ async_job_load_oci_bucket }}"
+      - --namespace
+      - "{{ async_job_load_oci_namespace }}"
+      - --name
+      - "{{ async_job_load_host_internal }}/{{ async_job_load_job_name }}.json"
+      - --file
+      - "/tmp/ansible_async_load_{{ async_job_load_job_name }}.json"
+      - --profile
+      - "{{ async_job_load_oci_profile }}"
   register: async_job_load_oci_result
   delegate_to: localhost
   changed_when: false
