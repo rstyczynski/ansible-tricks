@@ -8,6 +8,8 @@ The `rstyczynski.ansible` collection provides roles that enhance async functiona
 
 ## Enhanced Pattern: Persistent State Management with rstyczynski.ansible Collection
 
+![Async/Idempotent job model](model_vanilla.png)
+
 ### Problem: Job ID Volatility
 
 Ansible's native async mechanism stores job IDs only in playbook run memory. If the controller crashes or the operator forgets the job ID, there's no way to check task status or retrieve results.
