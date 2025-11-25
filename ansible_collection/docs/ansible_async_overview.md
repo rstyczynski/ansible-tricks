@@ -42,13 +42,10 @@ The detached process survives:
 - Controller shutdown or crash
 - Network connectivity issues
 - SSH session timeouts
-- Parent process termination
 
 ### Tracking File Location
 
-**On Managed Host:** `~/.ansible_async/<random_job_id>`
-
-**Configurable via:** `async_dir` in `ansible.cfg` or `ANSIBLE_ASYNC_DIR` environment variable
+On Managed Host Ansible async maintains `~/.ansible_async/<random_job_id>` file. It's configurable via: `async_dir` in `ansible.cfg` or `ANSIBLE_ASYNC_DIR` environment variable.
 
 The file contains JSON-formatted status data including:
 
@@ -531,6 +528,7 @@ ansible-playbook production_deploy.yml \
 **Example:** `.ansible_async_state/localhost/production_deployment/deploy_prod.json`
 
 **OCI Backend:**
+
 ```
 oci://<bucket>/
 └── <host>/
@@ -549,6 +547,7 @@ oci://<bucket>/
 **Contents:** Full task execution results (stdout, stderr, rc, timing)
 
 **Relationship:**
+
 ```
 Controller State File          Managed Host Results File
 .ansible_async_state/          ~/.ansible_async/
@@ -613,6 +612,7 @@ Controller State File          Managed Host Results File
 - Environment-specific: `"backup_{{ environment }}_{{ timestamp }}"`
 
 ❌ **Avoid:**
+
 - Generic names: `"job1"`, `"task"`
 - No context: `"test"`
 - Reusing names across different operations
@@ -624,11 +624,13 @@ The `playbook_name` parameter prevents collisions when multiple playbooks use th
 **Default Behavior:** Uses `{{ ansible_play_name }}` (the play name from YAML)
 
 **When to Override:**
+
 - Multiple playbooks managing same logical operation
 - Need explicit control over state file hierarchy
 - Migrating from old state file structure
 
 **Example:**
+
 ```yaml
 # Explicit playbook_name for clarity
 async_job_save_playbook_name: "database_maintenance"
@@ -665,22 +667,6 @@ async_job_save_metadata:
   command: "{{ job_command }}"
 ```
 
-### Backend Selection Strategy
-
-**Use Filesystem Backend When:**
-- Single operator environment
-- Development/testing
-- Fast iteration needed
-- Controller is stable/backed up
-
-**Use OCI Backend When:**
-- Multiple operators/teams
-- Production deployments
-- Long-running jobs (days/weeks)
-- Controller infrastructure may change
-- Disaster recovery requirements
-- Compliance/audit trail needs
-
 ## Troubleshooting
 
 ### Job Not Found After Controller Restart
@@ -698,6 +684,7 @@ async_job_save_metadata:
 **Cause:** Updated to version with BF-1 fix (Sprint 13) without updating playbooks
 
 **Solution:** Add `playbook_name` parameter to all save/load operations:
+
 ```yaml
 async_job_save_playbook_name: "your_playbook_name"
 async_job_load_playbook_name: "your_playbook_name"
@@ -710,6 +697,7 @@ async_job_load_playbook_name: "your_playbook_name"
 **Cause:** Multiple playbooks using same `job_name` without unique `playbook_name`
 
 **Solution:** Use different `playbook_name` for each playbook:
+
 ```yaml
 # Playbook A
 async_job_save_playbook_name: "deployment_app1"
@@ -725,6 +713,7 @@ async_job_save_job_name: "deploy"  # Same job_name OK with different playbook_na
 **Symptom:** `oci os object put` command fails
 
 **Solution:** Verify OCI CLI configuration:
+
 ```bash
 oci setup config      # Configure if not done
 oci os ns get         # Test authentication
@@ -736,6 +725,7 @@ oci iam region list   # Verify profile works
 **Symptom:** `async_status` returns "could not find job"
 
 **Possible Causes:**
+
 1. Host rebooted (results file lost)
 2. `~/.ansible_async/` directory cleared
 3. Wrong job ID (typo or loaded from wrong state)
@@ -743,52 +733,15 @@ oci iam region list   # Verify profile works
 
 **Solution:** Check host uptime, verify `~/.ansible_async/` exists, confirm job ID matches
 
-## Use Cases
-
-### Production Deployments
-- Zero-downtime rolling updates
-- Multi-stage deployment pipelines
-- Canary releases with health checks
-
-### Database Operations
-- Schema migrations (hours to days)
-- VACUUM FULL operations (PostgreSQL)
-- Large data imports/exports
-- Replication sync operations
-
-### Infrastructure Provisioning
-- Cloud resource creation (slow APIs)
-- Large file transfers
-- ISO/image downloads
-- Package updates on slow networks
-
-### Data Processing
-- Batch ETL jobs
-- Report generation
-- Log processing
-- Data warehouse loads
-
-### Backup and Recovery
-- Database dumps (large databases)
-- File system snapshots
-- Object storage synchronization
-- Disaster recovery tests
-
 ## Limitations
 
 ### Ansible Native Async
+
 - Task output buffered in memory on managed host
 - Requires sufficient disk space in `async_dir`
 - No progress reporting during execution
 - Callback plugins don't receive intermediate updates
-- Results file survives process death but not system crash
-
-### rstyczynski.ansible Collection
-- State file format not backward compatible after Sprint 13 (BF-1 fix)
-- Old state files must be deleted when upgrading
-- No automatic migration tool provided
-- Filesystem backend limited to single controller
-- OCI backend requires cloud connectivity and costs
+- Results file survives process death but not managed host crash
 
 ## References
 
@@ -804,13 +757,9 @@ oci iam region list   # Verify profile works
   - `async_job_load`: `ansible-doc rstyczynski.ansible.async_job_load`
 
 ### Example Scenarios
+
 - `scenario_01_idempotent_basic.yml` - Idempotent pattern
 - `scenario_02_parameterized.yml` - Parameterized jobs
 - `scenario_03_wait_loop.yml` - Blocking wait pattern
 - `scenario_04_crash_detection.yml` - Crash detection
 - `scenario_01_oci_basic.yml` - OCI backend usage
-
-### Related Sprint Documentation
-- Sprint 11 (GHC-15): Initial async job roles implementation
-- Sprint 12 (GHC-16): OCI Object Storage backend
-- Sprint 13 (BF-1): Bug fix for key uniqueness (playbook_name parameter)
