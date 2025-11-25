@@ -194,12 +194,18 @@
 
     # === STEP 5: Monitor task output ===
 
-    - name: Monitor async task output (until complete)
+    - name: Initialize monitoring state
+      ansible.builtin.set_fact:
+        job_status: {'finished': false}
+        continue_monitoring: true
+
+    - name: Monitor async task output (loop with conditional)
       ansible.builtin.include_tasks: monitor_output.yml
-      register: monitor_result
-      until: job_status.finished | default(false)
-      retries: "{{ max_retries | int }}"
-      delay: 0
+      loop: "{{ range(0, max_retries | int) | list }}"
+      loop_control:
+        index_var: monitor_iteration
+        label: "Check {{ monitor_iteration + 1 }}/{{ max_retries }}"
+      when: continue_monitoring | default(true)
 
     # === STEP 6: Display final results ===
 

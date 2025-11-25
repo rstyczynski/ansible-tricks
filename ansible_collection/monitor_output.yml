@@ -8,30 +8,35 @@
   register: job_status
   ignore_errors: true
   changed_when: false
+  when: continue_monitoring | default(true)
 
 - name: Read stdout file
   ansible.builtin.slurp:
     src: "{{ output_dir }}/{{ custom_job_id }}.stdout"
   register: stdout_content
   ignore_errors: true
+  when: continue_monitoring | default(true)
 
 - name: Read stderr file
   ansible.builtin.slurp:
     src: "{{ output_dir }}/{{ custom_job_id }}.stderr"
   register: stderr_content
   ignore_errors: true
+  when: continue_monitoring | default(true)
 
 - name: Display monitoring header
   ansible.builtin.debug:
     msg: |
       ─────────────────────────────────────────────────────────
-      Monitoring Check {{ monitor_check_index | default(0) + 1 }} - Task {{ 'COMPLETED' if (job_status.finished | default(false)) else 'RUNNING' }}
+      Monitoring Check {{ monitor_iteration | default(0) + 1 }} - Task {{ 'COMPLETED' if (job_status.finished | default(false)) else 'RUNNING' }}
       ─────────────────────────────────────────────────────────
+  when: continue_monitoring | default(true)
 
 - name: Display stdout output (full mode)
   ansible.builtin.debug:
     msg: "{{ (stdout_content.content | b64decode).split('\n') }}"
   when:
+    - continue_monitoring | default(true)
     - display_mode == 'full'
     - stdout_content is succeeded
     - stdout_content.content | length > 0
@@ -40,6 +45,7 @@
   ansible.builtin.debug:
     msg: "{{ ((stdout_content.content | b64decode).split('\n') | reject('equalto', '') | list)[-(tail_lines | int):] }}"
   when:
+    - continue_monitoring | default(true)
     - display_mode == 'tail'
     - stdout_content is succeeded
     - stdout_content.content | length > 0
@@ -48,6 +54,7 @@
   ansible.builtin.debug:
     msg: "{{ (stderr_content.content | b64decode).split('\n') }}"
   when:
+    - continue_monitoring | default(true)
     - display_mode == 'full'
     - stderr_content is succeeded
     - stderr_content.content | length > 0
@@ -56,9 +63,15 @@
   ansible.builtin.debug:
     msg: "{{ ((stderr_content.content | b64decode).split('\n') | reject('equalto', '') | list)[-(tail_lines | int):] }}"
   when:
+    - continue_monitoring | default(true)
     - display_mode == 'tail'
     - stderr_content is succeeded
     - stderr_content.content | length > 0
+
+- name: Stop monitoring if job finished
+  ansible.builtin.set_fact:
+    continue_monitoring: false
+  when: job_status.finished | default(false)
 
 - name: Pause before next check (unless finished)
   ansible.builtin.pause:
@@ -66,3 +79,4 @@
   when:
     - job_status is defined
     - not (job_status.finished | default(false))
+    - continue_monitoring | default(true)
