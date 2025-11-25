@@ -8,7 +8,7 @@ The `rstyczynski.ansible` collection provides roles that enhance async functiona
 
 ## Enhanced Pattern: Persistent State Management with rstyczynski.ansible Collection
 
-![Async/Idempotent job model](model_vanilla.png)
+![Async/Idempotent job model](model_oci.png)
 
 ### Problem: Job ID Volatility
 
