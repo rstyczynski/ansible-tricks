@@ -37,6 +37,9 @@
   hosts: localhost
   gather_facts: true
   vars:
+    # Job identification (consistent name for idempotency)
+    job_name: "live_output_example"  # Change this to run different jobs
+
     # Script configuration
     script_path: "{{ playbook_dir }}/scripts/generate_output.sh"
     script_duration: 300          # seconds (5 minutes default)
@@ -98,11 +101,26 @@
       failed_when: not wrapper_check.stat.exists
       changed_when: false
 
-    # === STEP 2: Generate unique job identifier ===
+    # === STEP 2: Check for existing job (IDEMPOTENCY) ===
 
-    - name: Generate unique job identifier
+    - name: Check for existing job files
+      ansible.builtin.find:
+        paths: "{{ output_dir }}"
+        patterns: "{{ job_name }}_*.stdout"
+      register: existing_jobs
+
+    - name: Set job found flag
       ansible.builtin.set_fact:
-        custom_job_id: "live_output_{{ ansible_date_time.epoch }}_{{ 999999 | random }}"
+        job_found: "{{ existing_jobs.files | length > 0 }}"
+        existing_job_id: "{{ (existing_jobs.files | first).path | basename | regex_replace('\\.stdout$', '') if existing_jobs.files | length > 0 else '' }}"
+
+    - name: Display job status
+      ansible.builtin.debug:
+        msg: "Job '{{ job_name }}' {{ 'FOUND - will check status' if job_found else 'NOT FOUND - will start new task' }}"
+
+    - name: Use existing job_id or generate new one
+      ansible.builtin.set_fact:
+        custom_job_id: "{{ existing_job_id if job_found else (job_name + '_' + ansible_date_time.epoch + '_' + (999999 | random | string)) }}"
 
     - name: Display job information
       ansible.builtin.debug:
@@ -117,9 +135,9 @@
             tail -f {{ output_dir | expanduser }}/{{ custom_job_id }}.stdout
             tail -f {{ output_dir | expanduser }}/{{ custom_job_id }}.stderr
 
-    # === STEP 3: Launch async task with output capture ===
+    # === STEP 3: Launch async task with output capture (only if not found) ===
 
-    - name: Launch async task with live output capture
+    - name: Launch async task with live output capture (only if not exists)
       ansible.builtin.shell: >
         {{ playbook_dir }}/scripts/capture_wrapper.sh
         {{ custom_job_id }}
@@ -128,19 +146,34 @@
         --count {{ script_line_count }}
       async: "{{ script_duration | int + 30 }}"
       poll: 0
-      register: async_result
+      register: new_task
+      when: not job_found
       args:
         executable: /bin/bash
+
+    - name: Set async result variable
+      ansible.builtin.set_fact:
+        async_result: "{{ new_task if not job_found else {'ansible_job_id': 'N/A', 'started': 1} }}"
 
     - name: Display async job information
       ansible.builtin.debug:
         msg: |
+          {% if job_found -%}
+          Found existing job!
+          {% else -%}
           Async task started successfully!
+          {% endif %}
 
-          Ansible Job ID: {{ async_result.ansible_job_id }}
           Custom Job ID: {{ custom_job_id }}
+          {% if not job_found -%}
+          Ansible Job ID: {{ async_result.ansible_job_id }}
+          {% endif %}
 
+          {% if job_found -%}
+          Resuming monitoring of existing job...
+          {% else -%}
           Task is now running in the background...
+          {% endif -%}
           Starting monitoring loop in {{ monitor_interval }} seconds
 
     # === STEP 4: Wait for output files to be created ===
@@ -182,8 +215,11 @@
     - name: Display final task status
       ansible.builtin.debug:
         msg: |
+          Job: {{ job_name }}
           Job ID: {{ custom_job_id }}
+          {% if not job_found -%}
           Ansible Job ID: {{ async_result.ansible_job_id }}
+          {% endif -%}
           Exit Code: {{ job_status.rc | default('N/A') }}
           Status: {{ 'SUCCESS' if (job_status.rc | default(1)) == 0 else 'FAILED' }}
 
@@ -218,5 +254,11 @@
           4. Custom tail length:
              ansible-playbook scenario_05_live_output.yml \
                -e "display_mode=tail" -e "tail_lines=10"
+
+          5. Different job (runs new task):
+             ansible-playbook scenario_05_live_output.yml \
+               -e "job_name=another_job"
+
+          Note: Run with same job_name to check status of existing job (idempotent)
 
           ═══════════════════════════════════════════════════════════
