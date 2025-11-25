@@ -34,6 +34,7 @@
         name: rstyczynski.ansible.async_job_load
       vars:
         async_job_load_backend: "oci"
+        async_job_load_playbook_name: "scenario_01_oci_basic"
         async_job_load_job_name: "{{ test_job_name }}"
         async_job_load_oci_bucket: "{{ oci_bucket }}"
         async_job_load_oci_namespace: "{{ oci_namespace }}"
@@ -57,6 +58,7 @@
         name: rstyczynski.ansible.async_job_save
       vars:
         async_job_save_backend: "oci"
+        async_job_save_playbook_name: "scenario_01_oci_basic"
         async_job_save_job_name: "{{ test_job_name }}"
         async_job_save_ansible_job_id: "{{ async_result.ansible_job_id }}"
         async_job_save_host: "{{ inventory_hostname }}"
