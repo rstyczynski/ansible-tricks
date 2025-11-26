@@ -193,6 +193,17 @@ Test case must cover:
 
 Data stored at `.ansible_async_state` may be stored in OCI Object Storage bucket.
 
+### GHC-17. Add example for async processing of playbook getting data from script's log
+
+Ansible async does not receive live stdout stream from executed process. It looks that it's mandatory to capture stdout / stderr and receive it by the playbook. Prepare new example that will:
+
+1. playbook runs a script that is provided as parameter
+2. script runs for 5 minutes writing to a stdout in a loop lines with subsequent numbers: `stdout line 1 of 50`; writes to stderr: `error no.1 of 50`
+3. playbook runs a script capturing stderr and stderr by tee commands writing it to `~/.ansible_async/{{ job_id }}.stdout` and `~/.ansible_async/{{ job_id }}.stderr`
+4. tee works in unbuffered mode, flushing each line
+5. playbook detecting running script shows full contents of `~/.ansible_async/{{ job_id }}.stdout` and `~/.ansible_async/{{ job_id }}.stderr`
+6. alternatively playbook may show a tail only, what is controlled by a parameter.
+
 ## Bug fixes
 
 ## BF-1. async storage procedures uses non unique file to keep job status.
@@ -249,5 +260,5 @@ Move this assignment to `pr_status_check`, `pr_status_check_pause` roles. Remove
 
 All `github_pr_flow.yml` arguments are prefixed by `arg_`.
 
-### CR-5.  repo_file_add gets list of files with allowed wildcards on files and directories incl. subdirs.
+### CR-5. repo_file_add gets list of files with allowed wildcards on files and directories incl. subdirs.
 

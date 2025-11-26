@@ -7,7 +7,6 @@
   when: >
     async_job_save_oci_bucket is not defined or
     async_job_save_oci_namespace is not defined
-  delegate_to: localhost
 
 - name: "Save Job (OCI): Create JSON state content"
   ansible.builtin.set_fact:
@@ -20,10 +19,17 @@
         "metadata": {{ async_job_save_metadata | to_json }}
       }
 
+- name: "Save Job (OCI): Create temporary file"
+  ansible.builtin.tempfile:
+    state: file
+    suffix: _ansible_async.json
+  register: async_job_save_temp_file
+  delegate_to: localhost
+
 - name: "Save Job (OCI): Write JSON to temp file"
   ansible.builtin.copy:
     content: "{{ async_job_save_oci_json_content }}"
-    dest: "/tmp/ansible_async_{{ async_job_save_job_name }}.json"
+    dest: "{{ async_job_save_temp_file.path }}"
     mode: '0600'
   delegate_to: localhost
 
@@ -41,7 +47,7 @@
       - --name
       - "{{ async_job_save_host }}/{{ async_job_save_playbook_name }}/{{ async_job_save_job_name }}.json"
       - --file
-      - "/tmp/ansible_async_{{ async_job_save_job_name }}.json"
+      - "{{ async_job_save_temp_file.path }}"
       - --profile
       - "{{ async_job_save_oci_profile }}"
       - --force
@@ -51,9 +57,10 @@
 
 - name: "Save Job (OCI): Clean up temp file"
   ansible.builtin.file:
-    path: "/tmp/ansible_async_{{ async_job_save_job_name }}.json"
+    path: "{{ async_job_save_temp_file.path }}"
     state: absent
   delegate_to: localhost
+  when: async_job_save_temp_file.path is defined
 
 - name: "Save Job (OCI): Set state file reference (OCI URI)"
   ansible.builtin.set_fact:

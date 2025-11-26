@@ -1,0 +1,85 @@
+---
+# monitor_log_loop.yml - Task file for monitoring log file in loop
+# This is included by async2.yml to display log content iteratively
+
+- name: Check if background job is still running
+  ansible.builtin.async_status:
+    jid: "{{ bg_job.ansible_job_id }}"
+  register: job_status
+  ignore_errors: true
+  changed_when: false
+
+- name: Increment iteration counter
+  ansible.builtin.set_fact:
+    monitor_iteration: "{{ (monitor_iteration | default(0) | int) + 1 }}"
+  changed_when: false
+
+- name: Check if log file exists
+  ansible.builtin.stat:
+    path: "{{ log_file }}"
+  register: log_stat
+  changed_when: false
+  failed_when: false
+
+- name: Read log file content
+  ansible.builtin.slurp:
+    src: "{{ log_file }}"
+  register: log_content
+  ignore_errors: true
+  changed_when: false
+  when: log_stat.stat.exists
+
+- name: Set log content variable
+  ansible.builtin.set_fact:
+    display_log_content: >-
+      {% if log_content is succeeded and log_content.content | length > 0 -%}
+      {{ log_content.content | b64decode }}
+      {% else -%}
+      Log file is empty or not yet created...
+      {% endif -%}
+  when: log_stat.stat.exists
+
+- name: Display log file content
+  ansible.builtin.debug:
+    msg: |
+      ═══════════════════════════════════════════════════════════
+      Log Content (Check {{ monitor_iteration }})
+      Job Status: {{ 'COMPLETED' if (job_status.finished | default(false)) else 'RUNNING' }}
+      ═══════════════════════════════════════════════════════════
+      {{ display_log_content | default('Log file is empty or not yet created...') }}
+      ═══════════════════════════════════════════════════════════
+  when: log_stat.stat.exists
+
+- name: Display waiting message
+  ansible.builtin.debug:
+    msg: |
+      ═══════════════════════════════════════════════════════════
+      Waiting for log file to be created... (Check {{ monitor_iteration }})
+      Job Status: {{ 'COMPLETED' if (job_status.finished | default(false)) else 'RUNNING' }}
+      ═══════════════════════════════════════════════════════════
+  when: not log_stat.stat.exists
+
+- name: Set job_finished flag when job completes
+  ansible.builtin.set_fact:
+    job_finished: "{{ job_status.finished | default(false) }}"
+  changed_when: false
+
+- name: Display final status and stop when job completes
+  block:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════
+          Task completed!
+          ═══════════════════════════════════════════════════════════
+          Ansible Job ID: {{ bg_job.ansible_job_id }}
+          Exit code: {{ job_status.ansible_job_id | default('N/A') }}
+          Final log file: {{ log_file }}
+
+          View complete log:
+            cat {{ log_file }}
+
+    - name: Stop monitoring loop
+      ansible.builtin.meta: end_play
+  when: job_status.finished | default(false)
+

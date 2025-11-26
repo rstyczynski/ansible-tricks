@@ -87,7 +87,6 @@ Backlog Items:
 
 * GHC-15. Long running task
 
-
 ## Sprint 12 - OCI Object Storage support for long running task
 
 Status: Done
@@ -97,7 +96,14 @@ Backlog Items: GHC-16
 
 ## Sprint 13 - bug fixes
 
-Status: Progress
+Status: Done
 Mode: YOLO
 
 Backlog Items: BF-1
+
+## Sprint 14 - Async tasks - access to live stdout/stderr
+
+Status: Progress
+Mode: YOLO
+
+Backlog Items: GHC-17

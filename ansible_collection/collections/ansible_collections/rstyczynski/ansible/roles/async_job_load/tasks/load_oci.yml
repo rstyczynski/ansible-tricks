@@ -7,11 +7,17 @@
   when: >
     async_job_load_oci_bucket is not defined or
     async_job_load_oci_namespace is not defined
-  delegate_to: localhost
 
 - name: "Load Job (OCI): Set host filter to current host if not specified"
   ansible.builtin.set_fact:
     async_job_load_host_internal: "{{ async_job_load_host_filter | default(inventory_hostname) }}"
+
+- name: "Load Job (OCI): Create temporary file for download"
+  ansible.builtin.tempfile:
+    state: file
+    suffix: _ansible_async_load.json
+  register: async_job_load_temp_file
+  delegate_to: localhost
 
 - name: "Load Job (OCI): Download from OCI Object Storage"
   ansible.builtin.command:
@@ -27,7 +33,7 @@
       - --name
       - "{{ async_job_load_host_internal }}/{{ async_job_load_playbook_name }}/{{ async_job_load_job_name }}.json"
       - --file
-      - "/tmp/ansible_async_load_{{ async_job_load_job_name }}.json"
+      - "{{ async_job_load_temp_file.path }}"
       - --profile
       - "{{ async_job_load_oci_profile }}"
   register: async_job_load_oci_result
@@ -42,7 +48,7 @@
 
 - name: "Load Job (OCI): Read downloaded JSON if found"
   ansible.builtin.slurp:
-    src: "/tmp/ansible_async_load_{{ async_job_load_job_name }}.json"
+    src: "{{ async_job_load_temp_file.path }}"
   register: async_job_load_state_raw
   delegate_to: localhost
   when: async_job_load_oci_result.rc == 0
@@ -62,7 +68,7 @@
 
 - name: "Load Job (OCI): Clean up temp file"
   ansible.builtin.file:
-    path: "/tmp/ansible_async_load_{{ async_job_load_job_name }}.json"
+    path: "{{ async_job_load_temp_file.path }}"
     state: absent
   delegate_to: localhost
-  when: async_job_load_oci_result.rc == 0
+  when: async_job_load_temp_file.path is defined

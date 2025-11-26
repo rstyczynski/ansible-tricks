@@ -1,0 +1,90 @@
+---
+# async2.yml - Async task with proper log file monitoring loop
+# This playbook demonstrates how to monitor log file content in a loop
+# while an async task is running in the background.
+# It reads and displays the full log file content in each iteration.
+#
+# IMPORTANT LIMITATION:
+# Ansible does NOT support true real-time stdout from async tasks.
+# This approach polls a log file periodically (every monitor_interval seconds).
+# There will always be a delay between when output is written and when it's displayed.
+#
+# To get closer to "real-time":
+# 1. Reduce monitor_interval (e.g., 0.5 or 1 second) - tradeoff: more CPU usage
+# 2. Use stdbuf in your command to reduce buffering (see scenario_05_live_output.yml)
+# 3. For true real-time, you'd need to run the command outside Ansible and use 'tail -f'
+
+- name: Async task with log file monitoring
+  hosts: localhost
+  gather_facts: false
+  vars:
+    script_path: "{{ playbook_dir }}/scripts/generate_progress.sh"
+    log_file: /tmp/progress.log
+    progress_count: 10  # Number of progress steps
+    monitor_interval: 1  # seconds between checks (lower = more "real-time" but more CPU)
+    max_retries: 20     # maximum number of monitoring iterations
+
+  tasks:
+    - name: Check if log file directory exists
+      ansible.builtin.stat:
+        path: "{{ log_file | dirname }}"
+      register: log_dir_stat
+
+    - name: Ensure log file directory exists
+      ansible.builtin.file:
+        path: "{{ log_file | dirname }}"
+        state: directory
+        mode: '0755'
+      when: not log_dir_stat.stat.exists
+
+    - name: Verify script exists
+      ansible.builtin.stat:
+        path: "{{ script_path }}"
+      register: script_check
+      failed_when: not script_check.stat.exists
+      changed_when: false
+
+    - name: Start background process (returns immediately)
+      ansible.builtin.command: "{{ script_path }} {{ progress_count }} {{ log_file }}"
+      async: 200
+      poll: 0
+      register: bg_job
+
+    - name: Initialize monitoring iteration counter
+      ansible.builtin.set_fact:
+        monitor_iteration: 0
+
+    - name: Check job status before monitoring
+      ansible.builtin.async_status:
+        jid: "{{ bg_job.ansible_job_id }}"
+      register: pre_check_status
+      ignore_errors: true
+      changed_when: false
+
+    - name: Monitor log file content in loop
+      ansible.builtin.include_tasks: problem_03_async_monitor_loop.yml
+      loop: "{{ range(0, max_retries) | list }}"
+      loop_control:
+        index_var: loop_index
+        label: "Monitoring iteration {{ loop_index + 1 }}/{{ max_retries }}"
+      when: >
+        (job_finished is not defined or not (job_finished | default(false) | bool))
+        and not (pre_check_status.finished | default(false))
+
+    - name: Get final result
+      ansible.builtin.async_status:
+        jid: "{{ bg_job.ansible_job_id }}"
+      register: final_result
+
+    - name: Display final status
+      ansible.builtin.debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════
+          Task completed!
+          ═══════════════════════════════════════════════════════════
+          Ansible Job ID: {{ bg_job.ansible_job_id }}
+          Exit code: {{ final_result.ansible_rc | default('N/A') }}
+          Final log file: {{ log_file }}
+
+          View complete log:
+            cat {{ log_file }}

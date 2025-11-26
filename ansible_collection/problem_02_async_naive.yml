@@ -1,0 +1,43 @@
+---
+# async_naive.yml - Simple async task with basic monitoring
+# This playbook demonstrates a simple async task with tail-based monitoring
+
+- name: Simple async task example
+  hosts: localhost
+  gather_facts: false
+  vars:
+    log_file: /tmp/progress.log
+    progress_count: 10
+    script_path: "{{ playbook_dir }}/scripts/generate_progress.sh"
+
+  tasks:
+    - name: Verify script exists
+      ansible.builtin.stat:
+        path: "{{ script_path }}"
+      register: script_check
+      failed_when: not script_check.stat.exists
+      changed_when: false
+
+    - name: Start background process (returns immediately)
+      ansible.builtin.command: "{{ script_path }} {{ progress_count }} {{ log_file }}"
+      async: 200
+      poll: 0
+      register: bg_job
+
+    - name: Monitor progress in real-time
+      ansible.builtin.shell: tail -20 {{ log_file }} 2>/dev/null || echo "Starting..."
+      register: output
+      until: output.stdout is search("Step {{ progress_count }} of {{ progress_count }}")
+      retries: 120
+      delay: 2
+      changed_when: false
+      failed_when: false
+
+    - name: Display final output
+      ansible.builtin.debug:
+        msg: "{{ output.stdout_lines }}"
+
+    - name: Get final result
+      ansible.builtin.async_status:
+        jid: "{{ bg_job.ansible_job_id }}"
+      register: final_result

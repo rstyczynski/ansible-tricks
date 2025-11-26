@@ -1,0 +1,19 @@
+---
+# regular.yml - Regular (synchronous) task execution
+# This playbook runs a task synchronously and shows output in real-time
+
+- name: Regular task execution example
+  hosts: localhost
+  gather_facts: false
+  vars:
+    progress_count: 10
+    script_path: "{{ playbook_dir }}/scripts/generate_progress.sh"
+
+  tasks:
+    - name: "Execute script, expecting to see progress in realtime"
+      ansible.builtin.command: "{{ script_path }} {{ progress_count }}"
+      register: result
+
+    - name: "Display final output"
+      ansible.builtin.debug:
+        msg: "{{ result.stdout_lines }}"

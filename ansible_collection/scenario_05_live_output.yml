@@ -38,7 +38,7 @@
   gather_facts: true
   vars:
     # Job identification (consistent name for idempotency)
-    job_name: "live_output_example"  # Change this to run different jobs
+    job_name: "live_output_example1"  # Change this to run different jobs
 
     # Script configuration
     script_path: "{{ playbook_dir }}/scripts/generate_output.sh"
@@ -58,6 +58,10 @@
 
   tasks:
     # === STEP 1: Setup ===
+
+    - name: Display cirrent directory
+      ansible.builtin.debug:
+        msg: "Current directory: {{ playbook_dir }}"
 
     - name: Display scenario information
       ansible.builtin.debug:
@@ -101,26 +105,30 @@
       failed_when: not wrapper_check.stat.exists
       changed_when: false
 
-    # === STEP 2: Check for existing job (IDEMPOTENCY) ===
+    # === STEP 2: Try to load existing job (IDEMPOTENCY using roles) ===
 
-    - name: Check for existing job files
-      ansible.builtin.find:
-        paths: "{{ output_dir }}"
-        patterns: "{{ job_name }}_*.stdout"
-      register: existing_jobs
+    - name: Try to load existing job by name
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_load
+      vars:
+        async_job_load_playbook_name: "scenario_05_live_output"
+        async_job_load_job_name: "{{ job_name }}"
 
-    - name: Set job found flag
-      ansible.builtin.set_fact:
-        job_found: "{{ existing_jobs.files | length > 0 }}"
-        existing_job_id: "{{ (existing_jobs.files | first).path | basename | regex_replace('\\.stdout$', '') if existing_jobs.files | length > 0 else '' }}"
-
-    - name: Display job status
+    - name: Display if job was found
       ansible.builtin.debug:
-        msg: "Job '{{ job_name }}' {{ 'FOUND - will check status' if job_found else 'NOT FOUND - will start new task' }}"
+        msg: "Job '{{ job_name }}' {{ 'FOUND - will check status' if async_job_load_found else 'NOT FOUND - will start new task' }}"
 
-    - name: Use existing job_id or generate new one
+    # === STEP 3: Generate custom job_id (for output files) ===
+
+    - name: Generate custom job_id for output files
       ansible.builtin.set_fact:
-        custom_job_id: "{{ existing_job_id if job_found else (job_name + '_' + ansible_date_time.epoch + '_' + (999999 | random | string)) }}"
+        custom_job_id: "{{ job_name + '_' + ansible_date_time.epoch + '_' + (999999 | random | string) }}"
+      when: not async_job_load_found
+
+    - name: Load custom_job_id from metadata
+      ansible.builtin.set_fact:
+        custom_job_id: "{{ async_job_load_metadata.custom_job_id }}"
+      when: async_job_load_found
 
     - name: Display job information
       ansible.builtin.debug:
@@ -135,7 +143,7 @@
             tail -f {{ output_dir | expanduser }}/{{ custom_job_id }}.stdout
             tail -f {{ output_dir | expanduser }}/{{ custom_job_id }}.stderr
 
-    # === STEP 3: Launch async task with output capture (only if not found) ===
+    # === STEP 4: Launch async task with output capture (only if not found) ===
 
     - name: Launch async task with live output capture (only if not exists)
       ansible.builtin.shell: >
@@ -147,29 +155,41 @@
       async: "{{ script_duration | int + 30 }}"
       poll: 0
       register: new_task
-      when: not job_found
+      when: not async_job_load_found
       args:
         executable: /bin/bash
 
-    - name: Set async result variable
-      ansible.builtin.set_fact:
-        async_result: "{{ new_task if not job_found else {'ansible_job_id': 'N/A', 'started': 1} }}"
+    # === STEP 5: Save job metadata (only if just started) ===
+
+    - name: Save job metadata (only if just started)
+      ansible.builtin.include_role:
+        name: rstyczynski.ansible.async_job_save
+      vars:
+        async_job_save_playbook_name: "scenario_05_live_output"
+        async_job_save_job_name: "{{ job_name }}"
+        async_job_save_ansible_job_id: "{{ new_task.ansible_job_id }}"
+        async_job_save_host: "{{ inventory_hostname }}"
+        async_job_save_metadata:
+          custom_job_id: "{{ custom_job_id }}"
+          script_duration: "{{ script_duration }}"
+          script_line_count: "{{ script_line_count }}"
+      when: not async_job_load_found
 
     - name: Display async job information
       ansible.builtin.debug:
         msg: |
-          {% if job_found -%}
+          {% if async_job_load_found -%}
           Found existing job!
           {% else -%}
           Async task started successfully!
           {% endif %}
 
           Custom Job ID: {{ custom_job_id }}
-          {% if not job_found -%}
-          Ansible Job ID: {{ async_result.ansible_job_id }}
+          {% if not async_job_load_found -%}
+          Ansible Job ID: {{ new_task.ansible_job_id }}
           {% endif %}
 
-          {% if job_found -%}
+          {% if async_job_load_found -%}
           Resuming monitoring of existing job...
           {% else -%}
           Task is now running in the background...
@@ -188,23 +208,24 @@
       loop_control:
         label: "{{ item }}"
 
-    - name: Pause before starting monitoring
-      ansible.builtin.pause:
-        seconds: "{{ monitor_interval }}"
+    # - name: Pause before starting monitoring
+    #   ansible.builtin.pause:
+    #     seconds: "{{ monitor_interval }}"
 
-    # === STEP 5: Monitor task output ===
+    # === STEP 6: Monitor task output ===
 
     - name: Initialize monitoring state
       ansible.builtin.set_fact:
         job_status: {'finished': false}
         continue_monitoring: true
+        async_result: "{{ {'ansible_job_id': async_job_load_ansible_job_id} if async_job_load_found else new_task }}"
 
     - name: Monitor async task output (loop with conditional)
-      ansible.builtin.include_tasks: monitor_output.yml
-      loop: "{{ range(0, max_retries | int) | list }}"
-      loop_control:
-        index_var: monitor_iteration
-        label: "Check {{ monitor_iteration + 1 }}/{{ max_retries }}"
+      ansible.builtin.include_tasks: scenario_05_monitor_output.yml
+      # loop: "{{ range(0, max_retries | int) | list }}"
+      # loop_control:
+      #   index_var: monitor_iteration
+      #   label: "Check {{ monitor_iteration + 1 }}/{{ max_retries }}"
       when: continue_monitoring | default(true)
 
     # === STEP 6: Display final results ===
@@ -221,7 +242,7 @@
         msg: |
           Job: {{ job_name }}
           Job ID: {{ custom_job_id }}
-          {% if not job_found -%}
+          {% if not async_job_load_found -%}
           Ansible Job ID: {{ async_result.ansible_job_id }}
           {% endif -%}
           Exit Code: {{ job_status.rc | default('N/A') }}
@@ -238,9 +259,9 @@
     - name: Display next steps
       ansible.builtin.debug:
         msg: |
-          ═══════════════════════════════════════════════════════════
+          ============================================================
           Next Steps
-          ═══════════════════════════════════════════════════════════
+          ============================================================
 
           Try these variations:
 
@@ -265,4 +286,4 @@
 
           Note: Run with same job_name to check status of existing job (idempotent)
 
-          ═══════════════════════════════════════════════════════════
+          ============================================================

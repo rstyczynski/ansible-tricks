@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Ansible's asynchronous execution mode allows long-running tasks to execute independently of the controller's SSH connection, protecting operations from network failures and freeing controller resources. This feature is essential for tasks that exceed typical SSH timeout windows (10+ minutes) or when managing multiple long-running operations concurrently. To get more high level information refer to [ansible_async_overview.md](ansible_async_overview.md) introduction document.
+Ansible's asynchronous execution mode allows long-running tasks to execute independently of the controller's SSH connection, protecting operations from network failures and freeing controller resources. This feature is essential for tasks that exceed typical SSH timeout windows (10+ minutes) or when managing multiple long-running operations concurrently. For more high-level information, refer to the [ansible_async_overview.md](ansible_async_overview.md) introduction document.
 
 The `rstyczynski.ansible` collection provides roles that enhance async functionality with persistent state management, enabling true idempotent long-running task patterns.
 
@@ -21,7 +21,7 @@ The `rstyczynski.ansible` collection provides two roles that implement persisten
 - **`async_job_save`**: Saves job metadata with a human-readable name
 - **`async_job_load`**: Retrieves job metadata by name
 
-This enables idempotent long-running task patterns - run the same playbook multiple times, and it will:
+This enables idempotent long-running task patterns: run the same playbook multiple times, and it will:
 
 1. Check if job already exists
 2. Skip starting if already running
@@ -100,7 +100,7 @@ Loads previously saved job metadata by name.
 
 ## Design Patterns
 
-The collection includes 5 test scenarios demonstrating key design patterns for long-running tasks:
+The collection includes 6 test scenarios demonstrating key design patterns for long-running tasks:
 
 ### Pattern 1: Idempotent Job Execution (scenario_01)
 
@@ -282,9 +282,183 @@ ansible-playbook scenario_02_parameterized.yml \
 
 ---
 
-### Pattern 5: Cloud-Based State Persistence (scenario_01_oci)
+### Pattern 5: Live Output Capture (scenario_05)
 
-**Problem:** Controller failure or team handoff breaks job tracking with filesystem storage.
+**Problem:** Ansible's native async_status only returns output after task completion. Need to monitor stdout/stderr from long-running tasks in real-time.
+
+**Solution:** Use shell redirection with `tee` to capture output to files, then monitor those files periodically during task execution.
+
+**Architecture:**
+
+```yaml
+# Launch with output capture wrapper
+- name: Start task with live output capture
+  ansible.builtin.shell: >
+    {{ playbook_dir }}/scripts/capture_wrapper.sh
+    {{ custom_job_id }}
+    {{ script_path }}
+    --duration {{ script_duration }}
+  async: "{{ script_duration | int + 30 }}"
+  poll: 0
+  register: task
+
+# Monitoring loop reads files periodically
+- name: Monitor output files
+  ansible.builtin.shell: "tail -n {{ tail_lines }} {{ output_dir }}/{{ custom_job_id }}.stdout"
+  register: output
+  until: job_status.finished
+  retries: "{{ max_retries }}"
+  delay: "{{ monitor_interval }}"
+```
+
+**Capture Wrapper Implementation:**
+
+```bash
+#!/bin/bash
+# capture_wrapper.sh - Captures stdout/stderr to files
+JOB_ID="$1"
+shift
+OUTPUT_DIR="${HOME}/.ansible_async"
+
+# Use stdbuf for unbuffered output, tee to duplicate streams
+stdbuf -oL -eL "$@" \
+  > >(tee "${OUTPUT_DIR}/${JOB_ID}.stdout") \
+  2> >(tee "${OUTPUT_DIR}/${JOB_ID}.stderr")
+```
+
+**Key Components:**
+
+1. **stdbuf**: Ensures unbuffered (real-time) output by disabling line buffering
+2. **tee**: Duplicates output streams to both files and terminal
+3. **Process Substitution**: `>(command)` allows multiple output destinations
+4. **File-Based Monitoring**: Periodic reads from output files during execution
+
+**Display Modes:**
+
+- **tail mode** (default): Shows last N lines (configurable via `tail_lines`)
+- **full mode**: Displays all output from files
+
+**Configuration Variables:**
+
+```yaml
+vars:
+  job_name: "live_output_example"     # Job identifier for idempotency
+  script_duration: 300                # Task duration (seconds)
+  script_line_count: 50               # Expected output lines
+  display_mode: "tail"                # "full" or "tail"
+  tail_lines: 20                      # Lines shown in tail mode
+  monitor_interval: 10                # Seconds between checks
+  output_dir: "~/.ansible_async"      # Output file location
+```
+
+**Idempotency Integration:**
+
+The scenario combines live output capture with idempotent job management:
+
+```yaml
+# Check for existing job
+- ansible.builtin.include_role:
+    name: rstyczynski.ansible.async_job_load
+  vars:
+    async_job_load_playbook_name: "scenario_05_live_output"
+    async_job_load_job_name: "{{ job_name }}"
+
+# Start only if not found
+- ansible.builtin.shell: >
+    {{ playbook_dir }}/scripts/capture_wrapper.sh ...
+  async: "{{ script_duration | int + 30 }}"
+  poll: 0
+  register: new_task
+  when: not async_job_load_found
+
+# Save job metadata with custom_job_id
+- ansible.builtin.include_role:
+    name: rstyczynski.ansible.async_job_save
+  vars:
+    async_job_save_metadata:
+      custom_job_id: "{{ custom_job_id }}"
+      script_duration: "{{ script_duration }}"
+  when: not async_job_load_found
+```
+
+**Output File Naming:**
+
+```
+~/.ansible_async/
+└── <job_name>_<epoch>_<random>.stdout
+└── <job_name>_<epoch>_<random>.stderr
+```
+
+Example: `live_output_example_1732567890_123456.stdout`
+
+**Real-Time Monitoring:**
+
+Users can monitor output independently of Ansible:
+
+```bash
+# Follow output in real-time
+tail -f ~/.ansible_async/live_output_example_*.stdout
+tail -f ~/.ansible_async/live_output_example_*.stderr
+
+# View full output
+cat ~/.ansible_async/live_output_example_*.stdout
+```
+
+**Use Cases:**
+- Database migrations with progress indicators
+- Build/compilation processes with detailed logging
+- Data processing jobs with status updates
+- Long-running scripts with incremental output
+- Debugging tasks requiring intermediate output inspection
+
+**Benefits:**
+
+- Real-time visibility into task progress without waiting for completion
+- Output preserved in files even if playbook crashes
+- Users can monitor independently using standard tools (tail, grep)
+- Idempotent - rerunning playbook shows output from existing job
+- Flexible display modes (full vs tail)
+- No modification to original scripts required
+
+**Limitations:**
+
+- Requires bash shell (for process substitution `>(command)`)
+- stdbuf utility needed for optimal real-time updates (GNU coreutils)
+- Additional disk I/O from file writes
+- Output files consume disk space (clean up manually)
+- File-based approach vs. Ansible's native callback system
+
+**Usage Examples:**
+
+```bash
+# Run with defaults (tail mode, last 20 lines)
+ansible-playbook scenario_05_live_output.yml
+
+# Full output display
+ansible-playbook scenario_05_live_output.yml -e "display_mode=full"
+
+# Custom monitoring interval and tail length
+ansible-playbook scenario_05_live_output.yml \
+  -e "monitor_interval=5" \
+  -e "tail_lines=30"
+
+# Shorter test run
+ansible-playbook scenario_05_live_output.yml \
+  -e "script_duration=60" \
+  -e "script_line_count=20"
+
+# Check existing job (idempotent)
+ansible-playbook scenario_05_live_output.yml
+# ^ Rerunning with same job_name shows output from existing job
+```
+
+**Example:** `scenario_05_live_output.yml`
+
+---
+
+### Pattern 6: Cloud-Based State Persistence (scenario_01_oci)
+
+**Problem:** Controller failure or team handoff breaks job tracking when using filesystem storage, as state files are lost if the controller is rebuilt or inaccessible.
 
 **Solution:** Use OCI Object Storage backend for distributed team access and disaster recovery.
 
@@ -312,9 +486,9 @@ OCI Bucket: ansible-async-test/
 
 **Prerequisites:**
 
-- OCI CLI configured (`oci setup config`)
+- OCI CLI configured (via `oci setup config`)
 - OCI bucket created
-- IAM permissions for object read/write
+- IAM permissions for object read/write operations
 
 **Use Case:** Multi-operator teams, disaster recovery scenarios, controller infrastructure failure, cloud-native deployments.
 
@@ -623,7 +797,7 @@ async_job_save_metadata:
 
 **Symptom:** `'async_job_load_playbook_name' is undefined`
 
-**Cause:** Updated to version with BF-1 fix (Sprint 13) without updating playbooks
+**Cause:** Collection was updated to a version that requires explicit `playbook_name` parameter (introduced in Sprint 13), but playbooks were not updated accordingly
 
 **Solution:** Add `playbook_name` parameter to all save/load operations:
 
@@ -681,8 +855,7 @@ oci iam region list   # Verify profile works
 
 - Task output buffered in memory on managed host
 - Requires sufficient disk space in `async_dir`
-- No progress reporting during execution
-- Callback plugins don't receive intermediate updates
+- No progress reporting during execution (workaround: see Pattern 5 - Live Output Capture)
 - Results file survives process death but not managed host crash
 
 ## References
@@ -690,9 +863,9 @@ oci iam region list   # Verify profile works
 ### Ansible Official Documentation
 - [Asynchronous Actions and Polling](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_async.html)
 - [async_status Module](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/async_status_module.html)
-- [async_dir Configuration](https://docs.ansible.com/ansible/latest/reference_appendices/config.html#async-dir)
 
 ### rstyczynski.ansible Collection
+
 - Collection README: `ansible_collection/collections/ansible_collections/rstyczynski/ansible/README.md`
 - Role Documentation:
   - `async_job_save`: `ansible-doc -t role rstyczynski.ansible.async_job_save`
@@ -704,4 +877,5 @@ oci iam region list   # Verify profile works
 - `scenario_02_parameterized.yml` - Parameterized jobs
 - `scenario_03_wait_loop.yml` - Blocking wait pattern
 - `scenario_04_crash_detection.yml` - Crash detection
+- `scenario_05_live_output.yml` - Live output capture and monitoring
 - `scenario_01_oci_basic.yml` - OCI backend usage

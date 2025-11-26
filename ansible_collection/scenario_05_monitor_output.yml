@@ -2,9 +2,9 @@
 # monitor_output.yml - Task file for monitoring async output
 # This is included in a loop by the main playbook
 
-- name: End monitoring if already stopped
-  ansible.builtin.meta: end_host
-  when: not (continue_monitoring | default(true))
+# - name: End monitoring if already stopped
+#   ansible.builtin.meta: end_host
+#   when: not (continue_monitoring | default(true))
 
 - name: Check task status
   ansible.builtin.async_status:
@@ -31,9 +31,9 @@
 - name: Display monitoring header
   ansible.builtin.debug:
     msg: |
-      ─────────────────────────────────────────────────────────
+      ------------------------------------------------------------
       Monitoring Check {{ monitor_iteration | default(0) + 1 }} - Task {{ 'COMPLETED' if (job_status.finished | default(false)) else 'RUNNING' }}
-      ─────────────────────────────────────────────────────────
+      ------------------------------------------------------------
   when: continue_monitoring | default(true)
 
 - name: Display stdout output (full mode)
@@ -77,10 +77,10 @@
     continue_monitoring: false
   when: job_status.finished | default(false)
 
-- name: Pause before next check (unless finished)
-  ansible.builtin.pause:
-    seconds: "{{ monitor_interval }}"
-  when:
-    - job_status is defined
-    - not (job_status.finished | default(false))
-    - continue_monitoring | default(true)
+# - name: Pause before next check (unless finished)
+#   ansible.builtin.pause:
+#     seconds: "{{ monitor_interval }}"
+#   when:
+#     - job_status is defined
+#     - not (job_status.finished | default(false))
+#     - continue_monitoring | default(true)

@@ -27,8 +27,8 @@
 set -euo pipefail
 
 # Defaults
-DURATION=300  # 5 minutes
-COUNT=50
+DURATION=30  # 5 minutes
+COUNT=30
 
 # Show usage
 show_usage() {
