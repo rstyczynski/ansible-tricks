@@ -64,6 +64,7 @@ ansible-playbook ara_record.yml
 
 ### get tasks by label
 
+```bash
 label=os%3AMacOSX-15.7.2
 
 curl http://127.0.0.1:8000/api/v1/playbooks?label=$label
@@ -71,6 +72,7 @@ curl http://127.0.0.1:8000/api/v1/playbooks?label=$label
 playbook_id=$(curl http://127.0.0.1:8000/api/v1/playbooks?label=$label | jq .results[0].id)
 
 curl 127.0.0.1:8000/api/v1/tasks?playbook=$playbook_id | jq
+```
 
 ## API Queries by Use Case
 
