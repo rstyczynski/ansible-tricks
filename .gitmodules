@@ -1,3 +1,6 @@
 [submodule "RUPStrikesBack"]
 	path = RUPStrikesBack
 	url = https://github.com/rstyczynski/RUPStrikesBack.git
+[submodule "github_lab"]
+	path = github_lab
+	url = https://github.com/github/github_lab.git
