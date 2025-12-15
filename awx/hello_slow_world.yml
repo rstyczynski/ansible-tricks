@@ -1,0 +1,11 @@
+---
+- name: Test secret with lookup
+  hosts: localhost
+  vars:
+    loop_count: 15  # can be overridden with --extra-vars "loop_count=20"
+  tasks:
+    - name: Loop for secret checks
+      ansible.builtin.include_tasks: hello_slow_world_loop.yml
+      loop: "{{ range(1, (loop_count | int) + 1) | list }}"
+      loop_control:
+        label: "iteration {{ item }}"

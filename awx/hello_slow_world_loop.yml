@@ -1,0 +1,12 @@
+---
+- name: Access secret via lookup
+  ansible.builtin.debug:
+    msg: "Secret value is: {{ lookup('env', 'MY_SECRET') }} (iteration {{ item }})"
+
+- name: Check secret length
+  ansible.builtin.debug:
+    msg: "Secret length is: {{ lookup('env', 'MY_SECRET') | length }} (iteration {{ item }})"
+
+- name: Wait 1 second before next iteration
+  ansible.builtin.pause:
+    seconds: 1
