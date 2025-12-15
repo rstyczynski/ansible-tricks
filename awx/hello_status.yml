@@ -1,0 +1,53 @@
+---
+- name: Test secret with lookup
+  hosts: localhost
+  vars:
+    execution_status: "unknown"
+  tasks:
+    - name: Execute action with status tracking
+      block:
+        - name: Access secret via lookup
+          ansible.builtin.debug:
+            msg: "Secret value is: {{ lookup('env', 'MY_SECRET') }}"
+
+        - name: Check secret length
+          ansible.builtin.debug:
+            msg: "Secret length is: {{ lookup('env', 'MY_SECRET') | length }}"
+
+        - name: Set success status
+          ansible.builtin.set_fact:
+            execution_status: "success"
+            execution_message: "Action completed successfully"
+
+      rescue:
+        - name: Set failure status
+          ansible.builtin.set_fact:
+            execution_status: "failed"
+            execution_message: "Action failed: {{ ansible_failed_result.msg | default('Unknown error') }}"
+
+        - name: Display error details
+          ansible.builtin.debug:
+            msg: "Error occurred: {{ ansible_failed_result.msg | default('Unknown error') }}"
+
+      always:
+        - name: Return execution status
+          ansible.builtin.set_fact:
+            result:
+              status: "{{ execution_status }}"
+              message: "{{ execution_message | default('No message') }}"
+              timestamp: "{{ ansible_date_time.iso8601 }}"
+
+        - name: Output JSON result to stdout (machine readable)
+          ansible.builtin.debug:
+            msg: '{{ result | to_json }}'
+
+        - name: Setting stats for summary display
+          ansible.builtin.set_stats:
+            data:
+              result1: "{{ result }}"
+              result2: "{{ result }}"
+              result3: "{{ result }}"
+              result4: "{{ result }}"
+              result5: "{{ result }}"
+            per_host: true
+            aggregate: false
